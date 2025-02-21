@@ -29,7 +29,9 @@
                                 </v-col>
                             </v-row>
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
-                                label="Data Type" variant="outlined"></v-select>
+                                        label="Data Type" variant="outlined"  :disabled="isNonRealTime">
+                            </v-select>
+                            <v-checkbox v-model="isNonRealTime" label="Publish URL(s) (no WIS2 data-notifications)" color="#003DA5" />
                         </v-card-text>
                         <v-card-actions>
                             <v-col cols="12">
@@ -155,14 +157,42 @@
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <v-col cols="4">
+                        <v-col cols="4" v-if="isNonRealTime === false">
                             <v-select label="Discipline topic"
                                 :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 v-model="model.identification.subTopic1" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">           
+                        <v-col cols="8" v-if="model.identification.isCustomLicense">
+                            <v-text-field 
+                                label="License (provide valid URL)" 
+                                type="url" 
+                                v-model="model.identification.licenseLink" 
+                                :rules="[rules.url]" 
+                                variant="outlined" 
+                                clearable>
+                            </v-text-field>
+                        </v-col>
+                        <v-col cols="8" v-else>
+                            <v-select 
+                                label="License (choose one)" 
+                                :items="license_options"
+                                item-title="label" 
+                                item-value="value"
+                                v-model="model.identification.licenseLink"
+                                :rules="[rules.required]"
+                                variant="outlined">
+                            </v-select>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-checkbox v-model="model.identification.isCustomLicense" 
+                            label="custom license (provide your own link)"
+                            variant="outlined" :disabled="true" :value="true"></v-checkbox>
+                        </v-col>
+                    </v-row>
+                    <v-row v-if="isNonRealTime === false">
                         <!-- toggle between selection sub-discipline topics and free-text input -->
                         <v-col cols="8" v-if="!model.identification.isExperimental">
                             <v-autocomplete label="Sub-discipline topics (choose one)"
@@ -181,7 +211,7 @@
                             variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-checkbox>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row v-if="isNonRealTime === false">
                         <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
                         <v-col cols="12">
                             <v-text-field label="Topic Hierarchy" type="string"
@@ -219,6 +249,52 @@
                         </v-col>
                     </v-row>
 
+                    <v-card-title class="big-title">
+                        Links to datasets
+                        <v-btn icon="mdi-comment-question" variant="text" size="small"
+                            @click="openLinkHelpDialog = true" />
+                    </v-card-title>
+                    <v-container>
+                        <v-table :hover="true" >
+                            <thead>
+                                <tr>
+                                    <th scope="row">
+                                        <p v-if="model.links?.length > 0">Dataset-links:</p>
+                                        <p v-else>No links are currently associated with this dataset</p>
+                                    </th>
+                                    <th scope="row">Title</th>
+                                    <th scope="row" class="text-right">URL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="link in model.links" :key="link.href" @click="viewLink(link)"
+                                    class="clickable-row">
+                                    <td class="medium-title">
+                                        {{ link.title }}
+                                    </td>
+                                    <td class="medium-title">
+                                        {{ link.href }}
+                                    </td>
+                                    <td class="text-right">
+                                        <v-btn class="mr-5" append-icon="mdi-update" color="#003DA5" variant="flat"
+                                            @click.stop="configureLink(link)">
+                                            Update
+                                        </v-btn>
+                                        <v-btn append-icon="mdi-delete" color="error" variant="flat"
+                                            @click.stop="removeLink(link)">Delete</v-btn>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </v-table>
+                    </v-container>
+                    <v-row justify="center" class="mt-1">
+                        <v-col cols="8">
+                            <v-btn @click="configureLink()" append-icon="mdi-plus" color="#64BF40" block>Add A
+                                Link</v-btn>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                    </v-row>
                     <v-card-title>
                         Temporal Properties
                         <v-btn icon="mdi-comment-question" variant="text" size="small"
@@ -238,7 +314,7 @@
                             </p>
                         </v-col>
                         <v-col cols="2">
-                            <v-checkbox v-model="isEndDateDisabled" label="Dataset ongoing" color="#003DA5" />
+                            <v-checkbox v-model="isEndDateDisabled" label="Dataset ongoing" color="#003DA5" :disabled="isNonRealTime"/>
                         </v-col>
                         <v-col cols="4">
                             <v-row dense>
@@ -368,7 +444,7 @@
             </v-card>
 
             <!-- Dataset Mappings Editor -->
-            <v-card v-if="metadataLoaded" class="mt-16 pa-3">
+            <v-card v-if="metadataLoaded && !isNonRealTime" class="mt-16 pa-3">
                 <v-card-title class="big-title">
                     Dataset Mappings Editor
                     <v-btn icon="mdi-comment-question" variant="text" size="small"
@@ -411,8 +487,6 @@
                         </tbody>
                     </v-table>
                 </v-container>
-
-
                 <v-row justify="center" class="mt-1">
                     <v-col cols="8">
                         <v-btn @click="configurePlugin()" append-icon="mdi-plus" color="#64BF40" block>Add A
@@ -471,8 +545,15 @@
                         <p><b>Centre ID:</b> The agency acronym (in lower case and no spaces), as specified by
                             the WMO Member.</p>
                         <br>
-                        <p><b>Data Type:</b> Template that pre-fills some of the input form, available only for certain Data Types. 
-                            <i>If 'other' is selected, more fields will have to be manually filled.</i>
+                        <p><b>Data Type:</b> For real-time data, you can select the type of data you are creating metadata for
+                            from a list of templates.
+                            This ensures you are using the correct topic-hierarchy, along with suggestions for title and keywords and default data-mappings.
+                            <br>
+                            <i>If 'other' is
+                                selected, you are responsible for ensuring the correct WIS2 Topic Hierarchy is used and you will need to define your own data-mappings.</i></p>
+                        <br>
+                        <p><b>no data-notifications:</b> Select this is you do not wish to publish WIS2-data-notifications
+                            and you only wish to publish metadata referencing data from a static dataset url.
                         </p>
                         <br>
                     </v-card-text>
@@ -489,7 +570,7 @@
                     </v-card-subtitle>
                     <v-card-text>
                         <p><b>Title:</b> A human-readable name of the dataset.</p>
-                        <p><i>Note: Unless 'other' was selected initially, this field is pre-filled, please review and update the title where neccessary.</i></p>
+                        <p><i>Note: Unless 'other' was selected initially, this field is pre-filled, please review and update the title where necessary.</i></p>
                         <br>
                         <p><b>Description:</b> A free-text summary description of the dataset.</p>
                         <br>
@@ -509,7 +590,8 @@
                         <p><b>WMO Data Policy:</b> Classification code of core or recommended based on the WMO
                             Unified
                             Data
-                            Policy.</p>
+                            Policy.
+                        </p>
                         <br>
                         <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
                         <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
@@ -529,6 +611,13 @@
                             resource, but are not referenced to a particular vocabulary or knowledge
                             organization
                             system.
+                        </p>
+                        <br>
+                        <p><b>License:</b>
+                            <i>If you select 'recommended' as WMO Data Policy, you will be required to provide a license link.</i>
+                            For new datasets, Creative Commons licenses offer standardized, widely-recognized terms that clearly communicate usage rights to others.
+                            Visit the Creative Commons website to explore license options that match your sharing preferences.
+                            Choose 'custom license' if you want to provide your own license link.
                         </p>
                         <br>
                     </v-card-text>
@@ -637,6 +726,24 @@
                         <br>
                         <p><i>For more information about Plugins see the wis2box documentation.</i></p>
                         <br>
+                    </v-card-text>
+                </v-card>
+            </v-dialog>
+
+            <v-dialog v-model="openLinkHelpDialog" max-width="600px">
+                <v-card>
+                    <v-toolbar title="Links to datasets" color="#003DA5">
+                        <v-btn icon="mdi-close" variant="text" size="small" @click="openLinkHelpDialog = false" />
+                    </v-toolbar>
+                    <v-card-subtitle>
+                        What is this section for?
+                    </v-card-subtitle>
+                    <v-card-text>
+                        <p>For non-real-time datasets, the user should provide at least one link enabling data access.</p>
+                        <br>
+                        <p><b>Link URL:</b> URL to to a web-accessible folder (WAF) or an API-endpoint.</p>
+                        <br>
+                        <p><b>Link Description:</b> Brief link title to describe dataset type and content.</p>
                     </v-card-text>
                 </v-card>
             </v-dialog>
@@ -801,6 +908,63 @@
                     </v-container>
                 </v-card>
             </v-dialog>
+
+            <!-- Dialog for the user to view a link -->
+            <v-dialog v-model="openViewLinkDialog" max-width="600px">
+                <v-card>
+                    <v-toolbar title="Link Viewer" color="#003DA5">
+                        <v-btn icon="mdi-close" variant="text" size="small" @click="openViewLinkDialog = false" />
+                    </v-toolbar>
+                    <v-card-item>
+                        <v-table class="my-2">
+                            <tbody>
+                                <tr>
+                                    <td><b>Link URL</b></td>
+                                    <td>{{ linkURL }}</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Link Description</b></td>
+                                    <td>{{ linkTitle }}</td>
+                                </tr>
+                            </tbody>
+                        </v-table>
+                    </v-card-item>
+                </v-card>
+            </v-dialog>
+
+            <!-- Dialog for the user to configure links -->
+            <v-dialog v-model="openConfigureLinkDialog" max-width="750px">
+                <v-card>
+                    <v-toolbar title="Link Editor" color="#003DA5">
+                        <v-btn icon="mdi-close" variant="text" size="small"
+                            @click="openConfigureLinkDialog = false" />
+                    </v-toolbar>
+                    <v-container>
+                        <v-col cols="12">
+                            <v-row>
+                                <v-col cols="12">
+                                    <v-text-field label="Link URL" v-model="linkURL" :rules="[rules.url]" 
+                                        hint="URL to the dataset or resource, has to be a valid URL (http/https)"
+                                        variant="outlined">
+                                    </v-text-field>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12">
+                                    <v-text-field label="Link Description" v-model="linkTitle"
+                                        hint="Descriptive title of the type and content of the link" variant="outlined">
+                                    </v-text-field>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12">
+                                    <v-btn color="#003DA5" variant="flat" block @click="saveLink">Save</v-btn>
+                                </v-col>
+                            </v-row>
+                        </v-col>
+                    </v-container>
+                </v-card>
+            </v-dialog>
         </v-col>
     </v-row>
 </template>
@@ -811,6 +975,7 @@ import BboxEditor from "@/components/BboxEditor.vue";
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { VCard, VForm, VBtn, VChipGroup, VChip, VCombobox } from 'vuetify/lib/components/index.mjs';
 import Papa from 'papaparse';
+import { link, select } from "d3";
 
 const oapi = import.meta.env.VITE_API_URL;
 
@@ -872,19 +1037,25 @@ export default defineComponent({
             identification: {
                 identifier: 'urn:wmo:md:',
                 keywords: [],
+                links: [],
                 wmoDataPolicy: 'core',
                 isExperimental: false,
                 subTopic1: 'weather',
                 subTopic2: null,
                 concepts: ['weather'],
-                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline'
+                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline',
+                licenseLink: null,
+                isCustomLicense: true
             },
             extents: {
                 // Default to the current date
                 dateStarted: new Date().toISOString(),
+                dateEnded: null
             },
             host: {},
-            plugins: []
+            plugins: [],
+            links: [],
+            license_link: `${import.meta.env.VITE_BASE_URL}/data/license.txt`
         };
 
         // Time durations for resolution
@@ -902,14 +1073,15 @@ export default defineComponent({
         // Validation patterns for form fields
         const rules = {
             required: value => !!value || "Field is required",
+            dateRequired: value => (value !== null && value !== undefined) || "Date is required",
             identifier: value => !isNew.value || !items.value.includes(value) || "Identifier already exists",
             centreID: value => /^[a-z0-9_-]{2,}$/.test(value) || 'Invalid centre ID. Must be lowercase with at least 2 characters',
             latitude: value => value >= -90 && value <= 90 || 'Latitude must be between -90 and 90',
             longitude: value => value >= -180 && value <= 180 || 'Longitude must be between -180 and 180',
-            url: value => value === '' || /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)$/.test(value) || 'Invalid URL format',
+            url: value => value === '' || /^(https?:\/\/)((\d{1,3}\.){3}\d{1,3}|[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,})(:\d{1,5})?(\/[-a-zA-Z0-9@:%_+.~#?&//=]*)?$/.test(value) || 'Invalid URL format',
             email: value => /^[a-z0-9._-]+@[a-z0-9-]+\.[a-z0-9.-]+$/.test(value) || 'Invalid email format',
             keywords: value => model.value.identification.keywords?.length >= 3 || 'There must be at least 3 keywords',
-            token: value => !!value || 'Token is required',
+            token: value => !!value || 'Token is required'
         };
 
         // Define HTTP responses
@@ -959,12 +1131,18 @@ export default defineComponent({
         const subTopics = ref([]);
         // list of valid sub-topics2
         const subTopics2 = ref([]);
+        // list of valid license_options
+        const license_options = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
         const isNew = ref(false);
         // Switch for whether end date is enabled
         const isEndDateDisabled = ref(true);
+        const dateStartedError = ref('');
+        const dateStoppedError = ref('');
+        // Switch for whether Non-Real-Time dataset is selected
+        const isNonRealTime = ref(false);
         // Geometry bounds
         const bounds = ref([[0, 0], [0, 0]]);
         // Country for the bbox - defaults to the host country
@@ -996,8 +1174,16 @@ export default defineComponent({
         const previousPluginFileExtension = ref(null);
         const previousPluginBuckets = ref(null);
         const previousPluginFilePattern = ref(null);
+        // Information for creating/configuring a dataset link
+        const linkIsNew = ref(true);
+        const linkTitle = ref(null);
+        const linkURL = ref(null);
+        // Information for storing the previous link title and URL
+        // when we overwrite the link info
+        const previousLinkTitle = ref(null);
+        const previousLinkURL = ref(null);
         // Metadata form to be filled
-        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [] });
+        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
         // Execution token to be entered by user
         const token = ref(null);
         // Variable to control whether token is seen or not
@@ -1010,6 +1196,7 @@ export default defineComponent({
         const openHostHelpDialog = ref(false);
         const openDistribHelpDialog = ref(false);
         const openPluginHelpDialog = ref(false);
+        const openLinkHelpDialog = ref(false);
         const openTokenHelpDialog = ref(false);
 
         // Message dialog windows
@@ -1063,6 +1250,9 @@ export default defineComponent({
         // Plugin dialog windows
         const openViewPluginDialog = ref(false);
         const openConfigurePluginDialog = ref(false);
+        
+        const openViewLinkDialog = ref(false);
+        const openConfigureLinkDialog = ref(false);
 
         // Computed variables
 
@@ -1090,7 +1280,7 @@ export default defineComponent({
 
         // Has the user filled the dialog window?
         const initialDialogFilled = computed(() => {
-            return model.value.identification.centreID && selectedTemplate.value;
+            return model.value.identification.centreID && (selectedTemplate.value || isNonRealTime.value);
         });
 
         // Filter the country code list so that only the countries
@@ -1127,6 +1317,7 @@ export default defineComponent({
         const canShowPluginTable = computed(() => {
             return metadataLoaded.value
         });
+        
 
         // Methods
 
@@ -1241,7 +1432,7 @@ export default defineComponent({
         const loadTopics = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/wth/topics-dropdown-list.csv`);
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/topics-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
@@ -1258,6 +1449,30 @@ export default defineComponent({
             }
         };
 
+        // Fetches a list of licences
+        const loadLicenseOptions = async () => {
+            try {
+                // Get list of topics from the CSV file available within the current website
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/licenses-dropdown-list.csv`);
+                if (!response.ok) {
+                    throw new Error('Network response was not okay, failed to load topics list.');
+                }
+                // Get CSV response and parse it into an object
+                const responseData = await response.text();
+                const parsed = Papa.parse(responseData, { header: true });
+                license_options.value = parsed.data.map(item => {
+                    return {
+                        label: `${item.link} (${item.description})`, 
+                        value: item.link
+                    };
+                });
+            } catch (error) {
+                console.error(error);
+                // Display error message to the user
+                message.value = 'Error loading licenses list.';
+            }
+        };
+
         // Loads the data type templates
         const loadTemplates = async () => {
             // Load all JSON files in the templates folder
@@ -1268,7 +1483,6 @@ export default defineComponent({
                 const file = await files[path]();
                 templateFiles.value.push(file.default);
             }
-
             // Also push the 'other' datatype label
             templateFiles.value.push({ 'label': 'other' });
         };
@@ -1344,8 +1558,35 @@ export default defineComponent({
                 identification: {},
                 extents: {},
                 host: {},
-                settings: {}
+                settings: {},
+                links: [],
+                license_link: defaults.license_link
             };
+
+            let license_link = null;
+            // loop over links in the schema and when rel='license' set the licenseLink
+            schema.links.forEach(link => {
+                if (link.rel === 'license') {
+                    license_link = link.href;
+                }
+                if (link.rel === 'archives') {
+                    formModel.links.push({
+                        title: link.title,
+                        href: link.href
+                    });
+                }
+            });
+            // check if the link is license_options, if not it is a customLicense
+            let is_custom_license = true;
+            for (const option of license_options.value) {
+                if (license_link === option.value) {
+                    is_custom_license = false;
+                    return;
+                }
+            }
+            // Set the license link and whether it is a custom license
+            formModel.identification.isCustomLicense = is_custom_license;
+            formModel.identification.licenseLink = license_link;
 
             // Retrieve the identifier from the schema
             formModel.identification.identifier = schema.id;
@@ -1353,15 +1594,31 @@ export default defineComponent({
             // Centre ID from wis2box section
             formModel.identification.centreID = schema.wis2box['centre_id'];
 
-            // Topic hierarcy from properties section, removing
+            // Topic hierarchy from properties section, removing
             // the 'origin/a/wis2' prefix
-            let fullTopic = schema.properties['wmo:topicHierarchy'];
-            formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
-            // subTopic1 is the 7th-level
-            formModel.identification.subTopic1 = fullTopic.split('/')[6];
-            // subTopic2 is the everything after the 7th level
-            formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/'); 
-
+            if (schema.properties['wmo:topicHierarchy']) {
+                let fullTopic = schema.properties['wmo:topicHierarchy'];
+                console.log("wmo:topicHierarchy=", fullTopic);
+                schema.properties['wmo:topicHierarchy'];
+                formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+                // subTopic1 is the 7th-level
+                formModel.identification.subTopic1 = fullTopic.split('/')[6];
+                // subTopic2 is the everything after the 7th level unless it starts with experimental
+                if (fullTopic.split('/')[7] === 'experimental') {
+                    formModel.identification.isExperimental = true;
+                    // subTopic2 is everything after experimental
+                    formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
+                }
+                else {
+                    formModel.identification.isExperimental = false;
+                    formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/');
+                }
+            }
+            else  {
+                formModel.identification.topicHierarchy = null;
+                isNonRealTime.value = true;
+            }
+            
             // Time period information
             if (schema.time?.interval) {
                 formModel.extents.dateStarted = schema.time.interval[0];
@@ -1440,6 +1697,7 @@ export default defineComponent({
             if (schema.properties["wmo:dataPolicy"]) {
                 formModel.identification.wmoDataPolicy = schema.properties["wmo:dataPolicy"];
             }
+            // fill in the created date
             if (schema.properties.created) {
                 formModel.extents.dateCreated = schema.properties.created;
             }
@@ -1457,13 +1715,19 @@ export default defineComponent({
             // Close the dialog
             showInitialDialog.value = false;
 
-            // Autofill the form based on the input datatype label
-            if (selectedTemplate.value.label !== 'other') {
-                applyTemplate(selectedTemplate.value);
+            if (selectedTemplate.value === null) {
+                defaultIdentification();
+                // set topic hierarchy to null
+                model.value.identification.topicHierarchy = null;
             }
             else {
-                // Apply sensible defaults for 'other' datatype
-                defaultIdentification();
+                // Autofill the form based on the input datatype label
+                if (selectedTemplate.value.label !== 'other') {
+                    applyTemplate(selectedTemplate.value);
+                }
+                else {
+                    defaultIdentification();
+                }
             }
         }
 
@@ -1567,26 +1831,6 @@ export default defineComponent({
             return result;
         };
 
-        // Method to check that the identifier does not already exist
-        const createAndCheckIdentifier = (identifier) => {
-            let randomCode = random6ASCIICharacters();
-
-            // Replace centre ID and data policy
-            let id = identifier.replace(
-                '$CENTRE_ID', model.value.identification.centreID
-            ).replace(
-                '$DATA_POLICY', randomCode
-            ).replace(/\..*$/, ''); 
-
-            // If id already in items, inform the user that they will need to change the id in the form
-            if (items.value.includes(id)) {
-                message.value = "There already is a dataset for this centre ID and data type. If you want to publish another dataset with the same centre ID and data type, please provide a new unique identifier for this dataset.";
-                openMessageDialog.value = true;
-            }
-
-            return id;
-        };
-
         const updateTopicHierarchy = () => {
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
@@ -1607,14 +1851,23 @@ export default defineComponent({
         // Autofill form based on template
         const applyTemplate = (template) => {
             // Metadata Editor parts
-            model.value.identification.title = template.title.replace('$CENTRE_ID', model.value.identification.centreID);
-            model.value.identification.identifier = createAndCheckIdentifier(template.identifier);
+            if (template.title){
+                model.value.identification.title = template.title.replace('$CENTRE_ID', model.value.identification.centreID);
+            }
+            const randomCode = random6ASCIICharacters();
+            model.value.identification.identifier = 'urn:wmo:md:' + model.value.identification.centreID + ':' + randomCode;
             localID.value = extractLocalID(model.value.identification.identifier);
             // Converts the theme structure into a list of the theme labels
             model.value.identification.concepts = template.themes.flatMap(theme => theme.concepts.map(concept => concept.label));
             model.value.identification.conceptScheme = template.themes.map(theme => theme.scheme)[0];
             model.value.identification.keywords = template.keywords;
             // Use centre ID and WMO data policy to create topic hierarchy
+            if(template.topicHierarchy) {
+                model.value.identification.topicHierarchy = template.topicHierarchy
+                    .replace('$CENTRE_ID', model.value.identification.centreID)
+                    .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
+                    .replace(/\..*$/, '');
+            }
             model.value.identification.isExperimental = false;
             model.value.identification.topicHierarchy = template.topicHierarchy
                 .replace('$CENTRE_ID', model.value.identification.centreID)
@@ -1686,17 +1939,12 @@ export default defineComponent({
         // Create sensible defaults for the identifier and topic
         // hierarchy when the user selects the 'other' datatype
         const defaultIdentification = () => {
-            // If the template datatype label is not 'other', exit
-            if (selectedTemplate.value?.label !== 'other') {
-                return;
-            }
-
-            // Otherwise, create sensible defaults using centre ID and randomcode
             const randomCode = random6ASCIICharacters();
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
             model.value.identification.identifier = 'urn:wmo:md:' + centreID + ':' + randomCode;
             localID.value = extractLocalID(model.value.identification.identifier);
+            
             model.value.identification.topicHierarchy = centreID + '/data/' + policy + '/';
         }
 
@@ -1880,6 +2128,99 @@ export default defineComponent({
             }
         };
 
+        // Populates link fields
+        const populateLinkFields = (link) => {
+            // If link exists, populate the fields
+            if (link) {
+                linkIsNew.value = false;
+                linkTitle.value = link.title;
+                linkURL.value = link.href;
+            }
+            // If link is new (null), reset the fields
+            else {
+                linkIsNew.value = true;
+                linkTitle.value = null;
+                linkURL.value = null;
+            }
+        }
+
+        // Let's the user see the details of the link without editing
+            const viewLink = (link) => {
+            // Open the view dialog
+            openViewLinkDialog.value = true;
+
+            populateLinkFields(link);
+        };
+
+        // Allows the user to configure a new or existing links, prepopulating previous values
+        const configureLink = (link) => {
+            // Open the dialog
+            openConfigureLinkDialog.value = true;
+            // Save the original plugin name and filetype
+            previousLinkTitle.value = link?.title;
+            previousLinkURL.value = link?.href;
+
+            populateLinkFields(link);
+        };
+
+        // Adds or updates the link in the model
+        const saveLink = () => {
+            // check if the link starts with http:// or https://
+            if (!linkURL.value.startsWith('http://') && !linkURL.value.startsWith('https://')) {
+                // return an error message
+                message.value = 'The URL must start with http:// or https://';
+                openMessageDialog.value = true;
+                return;
+            }
+            // if url contains a space, it is invalid
+            if(linkURL.value.includes(' ')){
+                message.value = 'Not a valid URL';
+                openMessageDialog.value = true;
+                return;
+            }
+            
+            // If the link is new, add it to the model
+            if (linkIsNew.value) {
+                // Create a new link object
+                const newLink = {
+                    title: linkTitle.value,
+                    href: linkURL.value
+                };
+                // Add the link to the model
+                model.value.links.push(newLink);
+            }
+            else {
+                // Find the index of the link in the model
+                const index = model.value.links.findIndex(item =>
+                    item.title === previousLinkTitle.value &&
+                    item.href === previousLinkURL.value);
+                // Update the link in the model
+                model.value.links[index] = {
+                    title: linkTitle.value,
+                    href: linkURL.value
+                };
+            }
+            // Close the dialog
+            openConfigureLinkDialog.value = false;
+        }
+
+        // Allows the user to remove a link from the model
+        const removeLink= (link) => {
+            // Find the index of the link in the model
+            const index = model.value.links.findIndex(item => item.title === link.title && link.href === link.href);
+
+            if (index > -1) {
+                // Create a shallow copy first
+                let updatedLinkList = [...model.value.links];
+
+                // Remove link
+                updatedLinkList.splice(index, 1);
+
+                // Reassign updated list to model
+                model.value.links = updatedLinkList;
+            }
+        };
+
 
         // Method to get the date from a datetime
         const getDateFrom = (datetime) => {
@@ -1956,10 +2297,16 @@ export default defineComponent({
 
             // wis2box information
             // Note: This is an extension to the WCMP2 schema
-            schemaModel.wis2box = {};
-            schemaModel.wis2box["topic_hierarchy"] = formatWIS2TopicHierarchy(form.identification.topicHierarchy);
-            schemaModel.wis2box["centre_id"] = form.identification.centreID;
-            schemaModel.wis2box["data_mappings"] = untidyPluginsForSchema(form.plugins);
+            schemaModel.wis2box = {
+                "data_mappings": {},
+                "centre_id": form.identification.centreID,
+                "topic_hierarchy": null
+            };
+            // topic_hierarchy and data_mappings are only added if the data is non-real-time
+            if(isNonRealTime.value === false) {
+                schemaModel.wis2box["topic_hierarchy"] = formatWIS2TopicHierarchy(form.identification.topicHierarchy);
+                schemaModel.wis2box["data_mappings"] = untidyPluginsForSchema(form.plugins);
+            }
 
             // Time period information
             schemaModel.time = {};
@@ -2056,8 +2403,27 @@ export default defineComponent({
             schemaModel.properties.created = form.extents.dateCreated || currentDTNoMilliseconds;
             schemaModel.properties.updated = currentDTNoMilliseconds;
             schemaModel.properties["wmo:dataPolicy"] = form.identification.wmoDataPolicy;
-            schemaModel.properties["wmo:topicHierarchy"] = form.identification.topicHierarchy;
+
+            // If the data is not non-real-time, add the topic hierarchy
+            if (form.identification.topicHierarchy && isNonRealTime.value === false) {
+                schemaModel.properties["wmo:topicHierarchy"] = `origin/a/wis2/${form.identification.topicHierarchy}`;
+            }
             schemaModel.properties.id = form.identification.identifier;
+            // add rel="data" to links
+            form.links.forEach(link => {
+                link.rel = "archives";
+            });
+            schemaModel.links = form.links;
+
+            // add user-provided licenseLink to to schemaModel.links if data-policy is 'recommended'
+            if (form.identification.wmoDataPolicy === 'recommended') {     
+                schemaModel.links.push({
+                    rel: "license",
+                    href: form.identification.licenseLink,
+                    title: "License for this dataset",
+                    type: "text/html"
+                });
+            }
 
             return schemaModel;
         };
@@ -2066,12 +2432,29 @@ export default defineComponent({
         const validateForm = async () => {
             const { valid } = await formRef.value.validate();
 
-            const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value);
+            // Check if date fields are filled
+            dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required.';
+            dateStoppedError.value = model.value.extents.dateStopped ? '' : 'End Date is required.';
+
+            const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value) &&
+                (isNonRealTime.value === false || model.value.links.length !== 0) &&
+                !dateStartedError.value && !dateStoppedError.value;
 
             message.value = isFormValid
                 ? "Form is valid, please proceed."
                 : "Form is invalid, please check all of the fields are filled correctly and try again.";
 
+            // add a message if there are no links for non-real-time data
+            if (isNonRealTime.value && model.value.links.length === 0) {
+                message.value += " At least one link must be added for non-real-time data.";
+            }
+            // add a message for dateStarted and dateStopped errors
+            if (dateStartedError.value !== '') {
+                message.value += " " + dateStartedError.value;
+            }
+            if (dateStoppedError.value !== '') {
+                message.value += " " + dateStoppedError.value;
+            }
             formValidated.value = isFormValid;
 
             openValidationDialog.value = true;
@@ -2161,7 +2544,13 @@ export default defineComponent({
             const checks = [
                 { condition: !formValidated.value, message: "The form must be validated" },
                 { condition: !formUpdated.value, message: "You must update the existing data" },
-                { condition: model.value.plugins?.length === 0, message: "At least one plugin must be added" },
+                { 
+                    condition: (model.value.plugins?.length === 0 && !isNonRealTime.value),
+                    message: "At least one plugin must be added" },
+                {
+                    condition: (model.value.links?.length === 0 && isNonRealTime.value),
+                    message: "At least one link must be added for non-real-time data"
+                },
                 { condition: !token.value, message: "You must provide a 'processes/wis2box' token" }
             ];
 
@@ -2321,9 +2710,24 @@ export default defineComponent({
             loadPluginLists();
             loadMappings();
             loadCodes();
+            loadLicenseOptions();
         });
 
         // Watched
+
+        // If the user sets to isNonRealTime to True, deselect the template
+        watch(isNonRealTime, (newValue) => {
+            console.log(`isNonRealTime changed to ${newValue}`);
+            if (newValue) {
+                selectedTemplate.value = null;
+                isEndDateDisabled.value = false;
+                // set dateStarted to null unless isNew is false
+                if (isNew.value) {
+                    console.log('isNew is true, setting dateStarted to null');
+                    model.value.extents.dateStarted = null;
+                }
+            }
+        });
 
         watch(() => model.value.identification.subTopic1, () => {    
             // If the user changes sub-topic1, update the options in sub-topic2
@@ -2344,8 +2748,17 @@ export default defineComponent({
 
         watch(() => model.value.identification.isExperimental, () => {
             // If the user changes the isExperimental value set subTopic2 to null
-            model.value.identification.subTopic2 = null;
-            updateTopicHierarchy();
+            if (isNew.value) {
+                model.value.identification.subTopic2 = null;
+                updateTopicHierarchy();
+            }
+        });
+
+        watch(() => model.value.identification.isCustomLicense, (newValue, oldValue) => {
+            // If the user changes the isCustomLicense, set the licenseLink to null
+            if (isNew.value) {
+                model.value.identification.licenseLink = null;
+            }
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
@@ -2400,6 +2813,7 @@ export default defineComponent({
             earthSystemDisciplines,
             subTopics,
             subTopics2,
+            license_options,
             durations,
             pluginList,
             templateList,
@@ -2425,13 +2839,14 @@ export default defineComponent({
             convertToLowercase,
             initialDialogFilled,
             filteredCountryCodeList,
+            endDatePossible,
             selectedTemplate,
             identifier,
             languageCodeList,
             countryCodeList,
             isNew,
             isEndDateDisabled,
-            endDatePossible,
+            isNonRealTime,
             bounds,
             bboxCountry,
             isHostPhoneValid,
@@ -2449,6 +2864,11 @@ export default defineComponent({
             pluginBucketsTitle,
             previousPluginName,
             previousPluginFileExtension,
+            linkIsNew,
+            linkTitle,
+            linkURL,
+            previousLinkTitle,
+            previousLinkURL,
             model,
             token,
             showToken,
@@ -2459,12 +2879,15 @@ export default defineComponent({
             openHostHelpDialog,
             openDistribHelpDialog,
             openPluginHelpDialog,
+            openLinkHelpDialog,
             openTokenHelpDialog,
             openMessageDialog,
             openValidationDialog,
             openSuccessDialog,
             openViewPluginDialog,
             openConfigurePluginDialog,
+            openViewLinkDialog,
+            openConfigureLinkDialog,
             loadList,
             loadMetadata,
             continueToForm,
@@ -2477,6 +2900,10 @@ export default defineComponent({
             configurePlugin,
             savePlugin,
             removePlugin,
+            viewLink,
+            configureLink,
+            saveLink,
+            removeLink,
             removeDataset,
             validateForm,
             resetForm,
