@@ -251,14 +251,12 @@
                     <v-row>
                         <v-col cols="3">
                             <VueDatePicker placeholder="Begin Date in UTC" v-model="model.extents.dateStarted"
-                                :teleport="true" :enable-time-picker="false" format="yyyy-MM-dd" auto-apply required
-                                :error-messages="dateStartedError"/>
+                                :teleport="true" :enable-time-picker="false" format="yyyy-MM-dd" auto-apply required />
                         </v-col>
                         <v-col cols="3">
                             <VueDatePicker placeholder="End Date in UTC" v-model="model.extents.dateStopped"
                                 :teleport="true" :enable-time-picker="false" format="yyyy-MM-dd"
-                                :disabled="isEndDateDisabled" :state="endDatePossible" auto-apply required
-                                :error-messages="dateStoppedError"/>
+                                :disabled="isEndDateDisabled" :state="endDatePossible" auto-apply required />
                             <p v-if="endDatePossible === false" class="hint-text hint-invalid">End date cannot be before
                                 the start date!
                             </p>
@@ -1539,9 +1537,9 @@ export default defineComponent({
                 formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
             }
 
-            // Links information, excluding link with rel='items' and href starting with 'mqtt'
+            // Links information, only show links with rel="data"
             if (schema.links) {
-                formModel.links = schema.links.filter(link => link.rel !== "data");
+                formModel.links = schema.links.filter(link => link.rel === "data");
             }
             return formModel;
         }
@@ -2232,13 +2230,8 @@ export default defineComponent({
             const { valid } = await formRef.value.validate();
 
             // Check if date fields are filled
-            dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required';
-            dateStoppedError.value = model.value.extents.dateStopped ? '' : 'End Date is required';
-            console.log(model.value.extents.dateStarted);
-            console.log(model.value.extents.dateStopped);
-            console.log('dateStartedError: ' + dateStartedError.value);
-            console.log('dateStoppedError: ' + dateStoppedError.value);
-
+            dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required.';
+            dateStoppedError.value = model.value.extents.dateStopped ? '' : 'End Date is required.';
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value) &&
                 (isNonRealTime.value === false || model.value.links.length !== 0) &&
@@ -2252,7 +2245,13 @@ export default defineComponent({
             if (isNonRealTime.value && model.value.links.length === 0) {
                 message.value += " At least one link must be added for non-real-time data.";
             }
-
+            // add a message for dateStarted and dateStopped errors
+            if (dateStartedError.value !== '') {
+                message.value += " " + dateStartedError.value;
+            }
+            if (dateStoppedError.value !== '') {
+                message.value += " " + dateStoppedError.value;
+            }
             formValidated.value = isFormValid;
 
             openValidationDialog.value = true;
@@ -2516,8 +2515,11 @@ export default defineComponent({
             if (newValue) {
                 selectedTemplate.value = null;
                 isEndDateDisabled.value = false;
-                // set dateStarted to null
-                model.value.extents.dateStarted = null;
+                // set dateStarted to null unless isNew is false
+                if (isNew.value) {
+                    console.log('isNew is true, setting dateStarted to null');
+                    model.value.extents.dateStarted = null;
+                }
             }
         });
 
