@@ -25,7 +25,7 @@ services:
     container_name: wis2box-api-test
     env_file:
       - test.env
-    image: ghcr.io/wmo-im/wis2box-api:1.0.0rc1
+    image: ghcr.io/world-meteorological-organization/wis2box-api:latest
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -61,7 +61,7 @@ services:
     mem_limit: 1g
     memswap_limit: 1g
     restart: always
-    image: ghcr.io/wmo-im/wis2box-management:latest
+    image: ghcr.io/world-meteorological-organization/wis2box-management:latest
     env_file:
       - test.env
     volumes:
@@ -76,7 +76,7 @@ services:
   mosquitto:
     container_name: mosquitto-test
     restart: always
-    image: ghcr.io/wmo-im/wis2box-broker:latest
+    image: ghcr.io/world-meteorological-organization/wis2box-broker:latest
     env_file:
       - test.env
     ports:
@@ -85,7 +85,7 @@ services:
   wis2box-auth:
     container_name: wis2box-auth-test
     restart: always
-    image: ghcr.io/wmo-im/wis2box-auth:1.0.0rc1
+    image: ghcr.io/world-meteorological-organization/wis2box-auth:latest
     env_file:
       - test.env
     volumes:
