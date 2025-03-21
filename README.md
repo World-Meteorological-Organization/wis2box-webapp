@@ -3,7 +3,7 @@
 # The wis2box Web App
 ### Access the wis2box toolset from your browser.
 
-<a href="https://github.com/wmo-im/wis2box-webapp/blob/main/LICENSE" alt="License" ><img src="https://img.shields.io/badge/License-Apache_2.0-blue"></img></a>
+<a href="https://github.com/World-Meteorological-Organization/wis2box-webapp/blob/main/LICENSE" alt="License" ><img src="https://img.shields.io/badge/License-Apache_2.0-blue"></img></a>
 
 The wis2box Web App is a Vue.js application that allows you to publish, edit, and visualize data and metadata from your WIS2 node.
 
@@ -42,7 +42,7 @@ The wis2box Web App is a Vue.js application that allows you to publish, edit, an
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/wmo-im/wis2box-webapp
+git clone https://github.com/World-Meteorological-Organization/wis2box-webapp
 cd wis2box-webapp
 ```
 
@@ -59,7 +59,7 @@ VITE_BASEMAP_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
 VITE_BASEMAP_ATTRIBUTION=<a href="https://osm.org/copyright">OpenStreetMap</a> contributors
 ```
 
-In a Docker environment, the environment variables have prefix `WIS2BOX_`. We recommend that you copy these from the test environment file, found <a href="https://github.com/wmo-im/wis2box-webapp/blob/main/tests/test.env">here</a>.
+In a Docker environment, the environment variables have prefix `WIS2BOX_`. We recommend that you copy these from the test environment file, found <a href="https://github.com/World-Meteorological-Organization/wis2box-webapp/blob/main/tests/test.env">here</a>.
 
 Now we are ready to start the web app with or without Docker.
 
@@ -189,12 +189,12 @@ git push origin main
 git tag -a x.y.z -m 'tagging release version x.y.z'
 git push --tags
 
-# publish release on GitHub (https://github.com/wmo-im/wis2box-webapp/releases/new)
+# publish release on GitHub (https://github.com/World-Meteorological-Organization/wis2box-webapp/releases/new)
 ```
 
 ## Issues
 
-Please direct all issues to the [main wis2box issue tracker](https://github.com/wmo-im/wis2box/issues)
+Please direct all issues to the [main wis2box issue tracker](https://github.com/World-Meteorological-Organization/wis2box/issues)
 
 ## Contact
 
