@@ -194,7 +194,7 @@ git push --tags
 
 ## Issues
 
-Please direct all issues to the [main wis2box issue tracker](https://github.com/wmo-im/wis2box/issues)
+Please direct all issues to the [main wis2box issue tracker](https://github.com/World-Meteorological-Organization/wis2box/issues)
 
 ## Contact
 
