@@ -95,7 +95,7 @@ import APIStatus from '@/components/APIStatus.vue';
 
 function stripHTMLTags(input) {
   if (typeof input !== 'string') {
-    console.warning("Invalid input passed to stripHTMLTags, empty string returned")
+    console.warn("Invalid input passed to stripHTMLTags, empty string returned")
     return '';
   }
   const tag_regex = /<\/?[a-zA-Z]+\/?>/g;
