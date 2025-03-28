@@ -861,7 +861,10 @@ export default defineComponent({
         // Time durations for resolution
         const durations = [
             { name: 'minutes(s)', code: 'M' },
-            { name: 'hour(s)', code: 'H' }
+            { name: 'hour(s)', code: 'H' },
+            { name: 'day(s)', code: 'D' },
+            { name: 'month(s)', code: 'M' },
+            { name: 'year(s)', code: 'Y' }
         ];
 
         // WCMP2 schema version
