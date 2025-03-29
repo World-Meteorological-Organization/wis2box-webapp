@@ -958,6 +958,8 @@ export default defineComponent({
         // when we overwrite the plugin info
         const previousPluginName = ref(null);
         const previousPluginFileExtension = ref(null);
+        const previousPluginBuckets = ref(null);
+        const previousPluginFilePattern = ref(null);
         // Metadata form to be filled
         const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [] });
         // Execution token to be entered by user
@@ -1714,6 +1716,8 @@ export default defineComponent({
             // Save the original plugin name and filetype
             previousPluginName.value = plugin?.name;
             previousPluginFileExtension.value = plugin?.fileType;
+            previousPluginBuckets.value = plugin?.buckets;
+            previousPluginFilePattern.value = plugin?.filePattern;
 
             populatePluginFields(plugin);
         };
@@ -1754,7 +1758,9 @@ export default defineComponent({
                 // Find the index of the plugin in the model
                 const index = model.value.plugins.findIndex(item =>
                     item.name === previousPluginName.value &&
-                    item.fileType === previousPluginFileExtension.value);
+                    item.fileType === previousPluginFileExtension.value &&
+                    item.buckets === previousPluginBuckets.value &&
+                    item.filePattern === previousPluginFilePattern.value);
                 // Update the plugin in the model
                 model.value.plugins[index] = {
                     fileType: pluginFileExtension.value,
