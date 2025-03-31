@@ -860,8 +860,11 @@ export default defineComponent({
 
         // Time durations for resolution
         const durations = [
-            { name: 'minutes(s)', code: 'M' },
-            { name: 'hour(s)', code: 'H' }
+            { name: 'minutes(s)', code: 'TM' },
+            { name: 'hour(s)', code: 'TH' },
+            { name: 'day(s)', code: 'D' },
+            { name: 'month(s)', code: 'M' },
+            { name: 'year(s)', code: 'Y' }
         ];
 
         // WCMP2 schema version
@@ -1314,12 +1317,22 @@ export default defineComponent({
             }
 
             // Minimum time period resolvable in the dataset
-            // Sets the resolution to the number, and unit to D or H
             if (schema.time?.resolution) {
-                const match = schema.time.resolution.match(/P(\d+)([DH])/i);
+                // match on Days, Months, or Years
+                const match = schema.time.resolution.match(/P(\d+)([DMY])/i);
                 if (match) {
                     formModel.extents.resolution = parseInt(match[1]);
                     formModel.extents.resolutionUnit = match[2].toUpperCase();
+                }
+                // match on Hours, Minutes
+                const match2 = schema.time.resolution.match(/PT(\d+)([HM])/i);
+                if (match2) {
+                    formModel.extents.resolution = parseInt(match2[1]);
+                    formModel.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
+                }
+                // print to console if no match found
+                if (!match && !match2) {
+                    console.warn("No match found for time resolution: ", schema.time.resolution);
                 }
             }
 
@@ -1544,10 +1557,19 @@ export default defineComponent({
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
             // Get resolution and resolution unit from template
-            const match = template.resolution.match(/P(\d+)([DH])/i);
+            const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
                 model.value.extents.resolution = parseInt(match[1]);
                 model.value.extents.resolutionUnit = match[2].toUpperCase();
+            }
+            const match2 = template.resolution.match(/PT(\d+)([HM])/i);
+            if (match2) {
+                model.value.extents.resolution = parseInt(match2[1]);
+                formModel.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
+            }
+            // print to console if no match found
+            if( !match && !match2) {
+                console.warn("No match found for time resolution: ", template.resolution);
             }
 
             // Data Mappings Editor parts
@@ -1884,7 +1906,15 @@ export default defineComponent({
 
             schemaModel.time.interval = [startDate, endDate];
             if (form.extents.resolution && form.extents.resolutionUnit) {
-                schemaModel.time.resolution = `P${form.extents.resolution}${form.extents.resolutionUnit}`;
+                if (form.extents.resolutionUnit === "TH") {
+                    schemaModel.time.resolution = `PT${form.extents.resolution}H`;
+                }
+                else if (form.extents.resolutionUnit === "TM") {
+                    schemaModel.time.resolution = `PT${form.extents.resolution}M`;
+                }
+                else {
+                    schemaModel.time.resolution = `P${form.extents.resolution}${form.extents.resolutionUnit}`;
+                }
             }
 
             // Geometry information
