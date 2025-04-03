@@ -42,6 +42,7 @@
           {
             "plugin": "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR",
             "notify": true,
+            "buckets": ["wis2box-incoming"],
             "file-pattern": "^.*_(\\d{4})(\\d{2}).*.txt$"
           }
         ],
