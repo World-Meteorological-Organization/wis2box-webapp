@@ -75,7 +75,7 @@ export default defineComponent({
 
     const loadStations = async () => {
         items.value = null;
-        const apiURL = `${import.meta.env.VITE_API_URL}/collections/stations/items?f=json`;
+        const apiURL = `${import.meta.env.VITE_API_URL}/collections/stations/items?f=json&limit=2000`;
         try {
           let response = await fetch(apiURL);
           if (!response.ok) {
