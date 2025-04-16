@@ -1457,6 +1457,15 @@
                 "maxx": -60.895,
                 "maxy": 10.89
             }
+        }, {
+        "bh": {
+            "name": "Bahrain",
+            "bbox": {
+                "minx": 72.5273968,
+                "miny": 35.1878012,
+                "maxx": 72.5673968,
+                "maxy": 35.2278012
+            }
         }
     },
     "_comment": "Generated on 2024-03-27 from geopandas, OpenStreetMap and Nominatim"
