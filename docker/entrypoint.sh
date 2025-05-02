@@ -40,5 +40,8 @@ else
   export VITE_WEBAPP_HOMEPAGE_MESSAGE=$WIS2BOX_WEBAPP_HOMEPAGE_MESSAGE
 fi
 
+# update topics dropdown
+python docker/generate-topics-list.py /wis2box-webapp/public/wth
+
 npm run build
 npm run preview
