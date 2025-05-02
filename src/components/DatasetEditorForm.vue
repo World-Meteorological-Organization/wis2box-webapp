@@ -156,14 +156,21 @@
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
                         <!-- Unless the user selects 'other' for the datatype 
-                        label, the topic hierarchy should remain disabled as 
-                        it is autofilled -->
+                        label, the sub topic hierarchy should remain disabled as 
+                        it is autofilled by the template -->
                         <v-col cols="8">
+                            <v-autocomplete label="Sub Topic" item-title="description" item-value="name"
+                                v-model="model.identification.subTopic" :items="subTopics" :rules="[rules.required]"
+                                variant="outlined"></v-autocomplete>
+                        </v-col>
+                    <v-row>
+                        <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
+                        <v-col cols="12">
                             <v-text-field label="Topic Hierarchy" type="string"
                                 v-model="model.identification.topicHierarchy" :rules="[rules.required]"
-                                variant="outlined" :disabled="selectedTemplate?.label !== 'other'"></v-text-field>
+                                variant="outlined" disabled></v-text-field>
                         </v-col>
-
+                    </v-row>
                     </v-row>
                     <v-row>
                         <v-col cols="4">
@@ -926,6 +933,8 @@ export default defineComponent({
         const countryCodeList = ref([]);
         // List of earth system disciplines
         const earthSystemDisciplines = ref([]);
+        // list of valid sub-topics
+        const subTopics = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
@@ -1201,6 +1210,28 @@ export default defineComponent({
                 console.error(error);
                 // Display error message to the user
                 message.value = 'Error loading earth system disciplines list.';
+            }
+        };
+
+        // Fetches a list of valid topics
+        const loadTopics = async () => {
+            try {
+                // Get list of topics from the CSV file available within the current website
+                const response = await fetch(`${window.location.origin}/public/wth/topics-dropdown-list.csv`);
+                if (!response.ok) {
+                    throw new Error('Network response was not okay, failed to load topics list.');
+                }
+                // Get CSV response and parse it into an object
+                const responseData = await response.text();
+                const parsed = Papa.parse(responseData, { header: true });
+                // Map this data into the correct format for the v-select component
+                subTopics.value = parsed.data.map(item => ({
+                    name: item.Name, description: item.Name
+                }));
+            } catch (error) {
+                console.error(error);
+                // Display error message to the user
+                message.value = 'Error loading topics list.';
             }
         };
 
@@ -1539,6 +1570,14 @@ export default defineComponent({
             // Replace 'core' or 'recommended' in the topic hierachy
             // string with the policy
             model.value.identification.topicHierarchy = hierarchy.replace(/core|recommended/g, policy);
+        };
+
+        const updateTopicHierarchy = () => {
+            let policy = model.value.identification.wmoDataPolicy;
+            let centreID = model.value.identification.centreID;
+            let subTopic = model.value.identification.subTopic;
+
+            model.value.identification.topicHierarchy = `${centreID}/data/${policy}/${subTopic}/`;
         };
 
         // Autofill form based on template
@@ -2253,6 +2292,7 @@ export default defineComponent({
             loadList();
             loadOfficialCentres();
             loadDisciplines();
+            loadTopics();
             loadTemplates();
             loadPluginLists();
             loadMappings();
@@ -2264,6 +2304,10 @@ export default defineComponent({
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
             replaceDataPolicyInTopicHierarchy();
+        });
+        // if the user changes the sub topic, update the topic hierarchy accordingly
+        watch(() => model.value.identification.topicHierarchy, () => {
+            updateTopicHierarchy();
         });
 
         // For each plugin name, auto populate the plugin fields

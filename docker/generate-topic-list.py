@@ -49,11 +49,10 @@ def prepare_topic_list(target_directory):
         if lines[0].strip() != "Name":
             print(f"Error: {INPUT_FILE} does not start with Name")
             sys.exit(1)
-        # loop over rest of the lines
+        # to filter out non-leaf topics:
         # skip if line is contained in any of the following lines
         # for example skip "ocean" if the following line is "ocean/experimental"
-        # write the line to the file
-        for line in lines[1:]:
+        for line in lines:
             # check if the line is empty
             if not line.strip():
                 continue
