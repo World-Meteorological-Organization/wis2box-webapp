@@ -1217,7 +1217,7 @@ export default defineComponent({
         const loadTopics = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/public/wth/topics-dropdown-list.csv`);
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/wth/topics-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
