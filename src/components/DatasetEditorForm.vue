@@ -1226,7 +1226,8 @@ export default defineComponent({
                 const parsed = Papa.parse(responseData, { header: true });
                 // Map this data into the correct format for the v-select component
                 subTopics.value = parsed.data.map(item => ({
-                    name: item.Name, description: item.Name
+                    name: item.Name, 
+                    description: item.Name
                 }));
                 console.log("Topics loaded successfully");
                 console.log(subTopics.value);
@@ -1337,6 +1338,7 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             let fullTopic = schema.properties['wmo:topicHierarchy'];
             formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+            formModel.identification.subTopic = fullTopic.replace(/origin\/a\/wis2\//g, '').split('/').pop();
 
             // Time period information
             if (schema.time?.interval) {
@@ -1576,9 +1578,9 @@ export default defineComponent({
 
         const updateTopicHierarchy = () => {
             console.log("Updating topic hierarchy...");
-            console.log(policy);
-            console.log(centreID);
-            console.log(subTopic);
+            console.log(model.value.identification.wmoDataPolicy);
+            console.log(model.value.identification.centreID);
+            console.log(model.value.identification.subTopic);
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
             let subTopic = model.value.identification.subTopic;
@@ -1601,6 +1603,9 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
+            // remove first 6 levels to get subTopic
+            model.value.identification.subTopic = model.value.identification.topicHierarchy.split('/').slice(6).join('/');
+            console.log("Subtopic: ", model.value.identification.subTopic);
             // Get resolution and resolution unit from template
             const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
