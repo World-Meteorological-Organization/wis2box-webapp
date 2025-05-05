@@ -1228,6 +1228,8 @@ export default defineComponent({
                 subTopics.value = parsed.data.map(item => ({
                     name: item.Name, description: item.Name
                 }));
+                console.log("Topics loaded successfully");
+                console.log(subTopics.value);
             } catch (error) {
                 console.error(error);
                 // Display error message to the user
@@ -1573,6 +1575,10 @@ export default defineComponent({
         };
 
         const updateTopicHierarchy = () => {
+            console.log("Updating topic hierarchy...");
+            console.log(policy);
+            console.log(centreID);
+            console.log(subTopic);
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
             let subTopic = model.value.identification.subTopic;
@@ -2303,7 +2309,7 @@ export default defineComponent({
 
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
-            replaceDataPolicyInTopicHierarchy();
+            updateTopicHierarchy();
         });
         // if the user changes the sub topic, update the topic hierarchy accordingly
         watch(() => model.value.identification.topicHierarchy, () => {
