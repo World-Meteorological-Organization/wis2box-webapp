@@ -458,10 +458,9 @@
                         <p><b>Centre ID:</b> The agency acronym (in lower case and no spaces), as specified by
                             the WMO Member.</p>
                         <br>
-                        <p><b>Data Type:</b> The type of data you are creating metadata for. <i>If 'other' is
-                                selected,
-                                more
-                                fields will have to be manually filled.</i></p>
+                        <p><b>Data Type:</b> Template that pre-fills some of the input form, available only for certain Data Types. 
+                            <i>If 'other' is selected, more fields will have to be manually filled.</i>
+                        </p>
                         <br>
                     </v-card-text>
                 </v-card>
