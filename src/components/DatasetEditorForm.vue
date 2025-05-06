@@ -155,13 +155,15 @@
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <!-- Unless the user selects 'other' for the datatype 
-                        label, the sub topic hierarchy should remain disabled as 
-                        it is autofilled by the template -->
-                        <v-col cols="8">
-                            <v-autocomplete label="Sub Topic" item-title="description" item-value="name"
-                                v-model="model.identification.subTopic" :items="subTopics" :rules="[rules.required]"
-                                variant="outlined"></v-autocomplete>
+                        <v-col cols="4">
+                            <v-select label="Earth System Disciplines"
+                                :items="earthSystemDisciplines" item-title="description" item-value="name"
+                                variant="outlined"></v-select>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-select label="Sub Topic" item-title="description" item-value="name"
+                                :items="subTopics" :rules="[rules.required]"
+                                variant="outlined"></v-select>
                         </v-col>
                     <v-row>
                         <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
