@@ -155,14 +155,16 @@
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <v-col cols="4">
-                            <v-select label="Earth System Disciplines"
+                        <v-col cols="2">
+                            <v-select label="Sub Topic 1"
                                 :items="earthSystemDisciplines" item-title="description" item-value="name"
+                                v-model="model.identification.subTopic1" :rules="[rules.required]"
                                 variant="outlined"></v-select>
                         </v-col>
-                        <v-col cols="4">
-                            <v-select label="Sub Topic" item-title="description" item-value="name"
-                                :items="subTopics" :rules="[rules.required]"
+                        <v-col cols="6">
+                            <v-select label="Sub Topic 2"
+                                :items="subTopics2" item-title="description"
+                                v-model="model.identification.subTopic2" :rules="[rules.required]"
                                 variant="outlined"></v-select>
                         </v-col>
                     <v-row>
@@ -856,6 +858,8 @@ export default defineComponent({
                 identifier: 'urn:wmo:md:',
                 keywords: [],
                 wmoDataPolicy: 'core',
+                subTopic1: 'weather',
+                subTopic2: null,
                 concepts: ['weather'],
                 conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline'
             },
@@ -937,6 +941,8 @@ export default defineComponent({
         const earthSystemDisciplines = ref([]);
         // list of valid sub-topics
         const subTopics = ref([]);
+        // list of valid sub-topics2
+        const subTopics2 = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
@@ -1226,11 +1232,8 @@ export default defineComponent({
                 // Get CSV response and parse it into an object
                 const responseData = await response.text();
                 const parsed = Papa.parse(responseData, { header: true });
-                // Map this data into the correct format for the v-select component
-                subTopics.value = parsed.data.map(item => ({
-                    name: item.Name, 
-                    description: item.Name
-                }));
+                // fill subTopics as an array of strings based on the first column in the csv
+                subTopics.value = parsed.data.map(item => item.Name);
                 console.log("Topics loaded successfully");
                 console.log(subTopics.value);
             } catch (error) {
@@ -1340,7 +1343,10 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             let fullTopic = schema.properties['wmo:topicHierarchy'];
             formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
-            formModel.identification.subTopic = fullTopic.replace(/origin\/a\/wis2\//g, '').split('/').pop();
+            // subTopic1 is the 7th-level
+            formModel.identification.subTopic1 = fullTopic.split('/')[6];
+            // subTopic2 is the everything after the 7th level
+            formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/'); 
 
             // Time period information
             if (schema.time?.interval) {
@@ -2314,12 +2320,25 @@ export default defineComponent({
 
         // Watched
 
+        watch(() => model.value.identification.subTopic1, () => {    
+            // If the user changes sub-topic1, update the options in sub-topic2
+            const selectedSubTopic1 = model.value.identification.subTopic1;
+            // Filter the subTopics list to include only options starting with subTopic1,
+            // and remove the "subTopic1/" prefix from the string
+            subTopics2.value = subTopics.value
+            .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
+            .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
+            console.log("Subtopic2: ", subTopics2.value);
+            // set subTopic to none after updating the options
+            model.value.identification.subTopic2 = null;
+        });
+
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
             updateTopicHierarchy();
         });
         // if the user changes the sub topic, update the topic hierarchy accordingly
-        watch(() => model.value.identification.topicHierarchy, () => {
+        watch(() => model.value.identification.subTopic, () => {
             updateTopicHierarchy();
         });
 
