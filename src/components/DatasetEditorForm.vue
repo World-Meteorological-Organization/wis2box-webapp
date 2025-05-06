@@ -157,7 +157,7 @@
                         </v-col>
                         <v-col cols="2">
                             <v-select label="Sub Topic 1"
-                                :items="earthSystemDisciplines" item-title="description" item-value="name"
+                                :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 v-model="model.identification.subTopic1" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
@@ -1578,9 +1578,7 @@ export default defineComponent({
             let subTopic1 = model.value.identification.subTopic1;
             let subTopic2 = model.value.identification.subTopic2;
 
-            model.value.identification.topicHierarchy = `${centreID}/data/${policy}/${subTopic1}/${subTopic2}`;
-            // displayed value includes origin/a/wis2
-            model.description.topicHierarchy = `origin/a/wis2/${model.value.identification.topicHierarchy}`;
+            model.value.identification.topicHierarchy = `origin/a/wis2/${centreID}/data/${policy}/${subTopic1}/${subTopic2}`;
         };
 
         // Autofill form based on template
@@ -1598,10 +1596,8 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
-            // subTopic1 is the 3rd-level (6th level of WTH but without origin/a/wis2)
-            model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[3];
-            // SsubTopic2 is the 4th-level and beyond (7th level of WTH but without origin/a/wis2)
-            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(4).join('/');
+            model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[6];
+            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(6).join('/');
             // Get resolution and resolution unit from template
             const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
@@ -1919,12 +1915,9 @@ export default defineComponent({
 
         // Helper method to format the WIS2 topic hierarchy
         const formatWIS2TopicHierarchy = (topic) => {
-            return topic.replace(/\//g, '.');
-        }
-
-        // Helper method to format the WMO topic hierarchy
-        const formatWMOTopicHierarchy = (topic) => {
-            return `origin/a/wis2/${topic}`
+            // Remove the 'origin/a/wis2/' prefix
+            // Replace the '/' with '.' to match the schema
+            return topic.replace(/origin\/a\/wis2\//g, '').replace(/\//g, '.');
         }
 
         // Transforms the form data to the WCMP2 schema format
@@ -2039,7 +2032,7 @@ export default defineComponent({
             schemaModel.properties.created = form.extents.dateCreated || currentDTNoMilliseconds;
             schemaModel.properties.updated = currentDTNoMilliseconds;
             schemaModel.properties["wmo:dataPolicy"] = form.identification.wmoDataPolicy;
-            schemaModel.properties["wmo:topicHierarchy"] = formatWMOTopicHierarchy(form.identification.topicHierarchy);
+            schemaModel.properties["wmo:topicHierarchy"] = form.identification.topicHierarchy;
             schemaModel.properties.id = form.identification.identifier;
 
             return schemaModel;
@@ -2316,7 +2309,6 @@ export default defineComponent({
             subTopics2.value = subTopics.value
             .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
             .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
-            console.log("Subtopic2: ", subTopics2.value);
             // set subTopic to none after updating the options
             model.value.identification.subTopic2 = null;
         });
