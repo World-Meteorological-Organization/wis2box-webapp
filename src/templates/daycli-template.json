@@ -2,9 +2,9 @@
   "label": "climate/surface-based-observations/daily",
   "title": "Daily values from land stations (DAYCLI) ($CENTRE_ID)",
   "identifier": "urn:wmo:md:$CENTRE_ID:$DATA_POLICY.climate.surface.daily",
-  "topicHierarchy": "$CENTRE_ID/data/$DATA_POLICY/climate/surface-based-observations/daily",
+  "topicHierarchy": "origin/a/wis2/$CENTRE_ID/data/$DATA_POLICY/climate/surface-based-observations/daily",
   "language": "en",
-  "resolution": "P1H",
+  "resolution": "PT1H",
   "keywords": [
     "climate",
     "temperature",

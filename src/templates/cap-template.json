@@ -2,7 +2,7 @@
   "label": "weather/advisories-warnings",
   "title": "CAP Alerts published by $CENTRE_ID",
   "identifier": "urn:wmo:md:$CENTRE_ID:$DATA_POLICY.weather.cap",
-  "topicHierarchy": "$CENTRE_ID/data/$DATA_POLICY/weather/advisories-warnings",
+  "topicHierarchy": "origin/a/wis2/$CENTRE_ID/data/$DATA_POLICY/weather/advisories-warnings",
   "language": "en",
   "resolution": "",
   "keywords": [

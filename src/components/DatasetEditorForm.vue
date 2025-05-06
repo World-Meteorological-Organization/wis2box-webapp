@@ -1596,8 +1596,10 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
+            console.log("SubTopcic1: ", model.value.identification.topicHierarchy.split('/')[6]);
+            console.log("SubTopcic2: ", model.value.identification.topicHierarchy.split('/').slice(7).join('/'));
             model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[6];
-            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(6).join('/');
+            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(7).join('/');
             // Get resolution and resolution unit from template
             const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
