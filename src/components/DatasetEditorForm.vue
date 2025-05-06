@@ -1596,8 +1596,8 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
-            console.log("SubTopcic1: ", model.value.identification.topicHierarchy.split('/')[6]);
-            console.log("SubTopcic2: ", model.value.identification.topicHierarchy.split('/').slice(7).join('/'));
+            console.log("SubTopic1: ", model.value.identification.topicHierarchy.split('/')[6]);
+            console.log("SubTopic2: ", model.value.identification.topicHierarchy.split('/').slice(7).join('/'));
             model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[6];
             model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(7).join('/');
             // Get resolution and resolution unit from template
@@ -1609,7 +1609,7 @@ export default defineComponent({
             const match2 = template.resolution.match(/PT(\d+)([HM])/i);
             if (match2) {
                 model.value.extents.resolution = parseInt(match2[1]);
-                formModel.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
+                model.value.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
             }
             // print to console if no match found
             if( !match && !match2) {
@@ -2311,8 +2311,14 @@ export default defineComponent({
             subTopics2.value = subTopics.value
             .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
             .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
-            // set subTopic to none after updating the options
-            model.value.identification.subTopic2 = null;
+            // check if subTopic2 is in the list of subTopics2
+            const isSubTopic2InList = subTopics2.value.includes(model.value.identification.subTopic2);
+            // If subTopic2 is not in the list, set it to null
+            if (!isSubTopic2InList) {
+                console.log("SubTopic2", model.value.identification.subTopic2, "is not in the list of subTopics2");
+                // Set subTopic2 to null
+                model.value.identification.subTopic2 = null;
+            }
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
