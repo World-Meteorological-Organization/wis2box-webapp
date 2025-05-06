@@ -2379,6 +2379,8 @@ export default defineComponent({
         return {
             defaults,
             earthSystemDisciplines,
+            subTopics,
+            subTopics2,
             durations,
             pluginList,
             templateList,
