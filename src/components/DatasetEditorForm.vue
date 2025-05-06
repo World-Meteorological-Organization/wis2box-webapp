@@ -131,7 +131,7 @@
                                 <v-col cols="11">
                                     <v-text-field label="Identifier" type="string"
                                         v-model="model.identification.identifier"
-                                        :disabled="true"  variant="outlined">
+                                        disabled  variant="outlined">
                                     </v-text-field>
                                 </v-col>
                                 <v-col cols="1">    
@@ -159,19 +159,20 @@
                             <v-select label="Sub Topic 1"
                                 :items="earthSystemDisciplines" item-title="description" item-value="name"
                                 v-model="model.identification.subTopic1" :rules="[rules.required]"
-                                variant="outlined"></v-select>
+                                variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                         <v-col cols="6">
                             <v-select label="Sub Topic 2"
                                 :items="subTopics2" item-title="description"
                                 v-model="model.identification.subTopic2" :rules="[rules.required]"
-                                variant="outlined"></v-select>
+                                variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                     <v-row>
                         <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
                         <v-col cols="12">
                             <v-text-field label="Topic Hierarchy" type="string"
                                 v-model="model.identification.topicHierarchy" :rules="[rules.required]"
+                                item-title="description" item-value="value"
                                 variant="outlined" disabled></v-text-field>
                         </v-col>
                     </v-row>
@@ -179,7 +180,7 @@
                     <v-row>
                         <v-col cols="4">
                             <v-select label="Earth System Disciplines" v-model="model.identification.concepts" multiple
-                                :items="earthSystemDisciplines" item-title="description" item-value="name"
+                                :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 variant="outlined"></v-select>
                         </v-col>
                         <v-col cols="8">
@@ -498,10 +499,10 @@
                             Data
                             Policy.</p>
                         <br>
-                        <p><b>Topic Hierarchy:</b> The unique hierarchy for this data.</p>
-                        <p><i>Note: Unless 'other' was selected initially, this field is pre-filled and cannot
-                                be
-                                edited.</i></p>
+                        <p><b>Sub Topic 1:</b> 7th level of the WIS2 Topic Hierarchy (Earth System Discipline)</p>
+                        <p><b>Sub Topic 2:</b> Topic Hierarchy from the 8th level onwards, available options are based on the lasted WIS2 Topic Hierarchy.</p>
+                        <p><b>Topic Hierarchy:</b> MQTT channel used to publish data-notifications, should adhere to the official WIS2 Topic Hierarchy.</p>
+                        <p><i>Note: the dataset editor will automatically generate this based on your centre-id, data-policy and sub-topic selection</i></p>
                         <br>
                         <p><b>Earth System Disciplines:</b> A list of concepts that are referenced to a
                             vocabulary or
@@ -1234,8 +1235,6 @@ export default defineComponent({
                 const parsed = Papa.parse(responseData, { header: true });
                 // fill subTopics as an array of strings based on the first column in the csv
                 subTopics.value = parsed.data.map(item => item.Name);
-                console.log("Topics loaded successfully");
-                console.log(subTopics.value);
             } catch (error) {
                 console.error(error);
                 // Display error message to the user
@@ -1262,7 +1261,6 @@ export default defineComponent({
         // When the user specifies a dataset identifier, load the corresponding metadata
         const loadMetadata = async () => {
             // Page values
-            console.log("Loading metadata...")
             working.value = true;
             metadataLoaded.value = false;
             datasetSpecified.value = true;
@@ -1573,27 +1571,16 @@ export default defineComponent({
             return id;
         };
 
-
-        // replace the data policy in the topic hierarchy
-        const replaceDataPolicyInTopicHierarchy = () => {
-            let policy = model.value.identification.wmoDataPolicy;
-            let hierarchy = model.value.identification.topicHierarchy;
-
-            // Replace 'core' or 'recommended' in the topic hierachy
-            // string with the policy
-            model.value.identification.topicHierarchy = hierarchy.replace(/core|recommended/g, policy);
-        };
-
         const updateTopicHierarchy = () => {
             console.log("Updating topic hierarchy...");
-            console.log(model.value.identification.wmoDataPolicy);
-            console.log(model.value.identification.centreID);
-            console.log(model.value.identification.subTopic);
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
-            let subTopic = model.value.identification.subTopic;
+            let subTopic1 = model.value.identification.subTopic1;
+            let subTopic2 = model.value.identification.subTopic2;
 
-            model.value.identification.topicHierarchy = `${centreID}/data/${policy}/${subTopic}/`;
+            model.value.identification.topicHierarchy = `${centreID}/data/${policy}/${subTopic1}/${subTopic2}`;
+            // displayed value includes origin/a/wis2
+            model.description.topicHierarchy = `origin/a/wis2/${model.value.identification.topicHierarchy}`;
         };
 
         // Autofill form based on template
@@ -1611,9 +1598,10 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
-            // remove first 6 levels to get subTopic
-            model.value.identification.subTopic = model.value.identification.topicHierarchy.split('/').slice(6).join('/');
-            console.log("Subtopic: ", model.value.identification.subTopic);
+            // subTopic1 is the 3rd-level (6th level of WTH but without origin/a/wis2)
+            model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[3];
+            // SsubTopic2 is the 4th-level and beyond (7th level of WTH but without origin/a/wis2)
+            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(4).join('/');
             // Get resolution and resolution unit from template
             const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
@@ -2337,8 +2325,12 @@ export default defineComponent({
         watch(() => model.value.identification.wmoDataPolicy, () => {
             updateTopicHierarchy();
         });
-        // if the user changes the sub topic, update the topic hierarchy accordingly
-        watch(() => model.value.identification.subTopic, () => {
+        // if the user changes the sub topic 1, update the topic hierarchy accordingly
+        watch(() => model.value.identification.subTopic1, () => {
+            updateTopicHierarchy();
+        });
+        // if the user changes the sub topic 2, update the topic hierarchy accordingly
+        watch(() => model.value.identification.subTopic2, () => {
             updateTopicHierarchy();
         });
 
