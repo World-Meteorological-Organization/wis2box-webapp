@@ -498,10 +498,12 @@
                             Data
                             Policy.</p>
                         <br>
-                        <p><b>Sub Topic 1:</b> 7th level of the WIS2 Topic Hierarchy (Earth System Discipline)</p>
-                        <p><b>Sub Topic 2:</b> Topic Hierarchy from the 8th level onwards, available options are based on the lasted WIS2 Topic Hierarchy.</p>
-                        <p><b>Topic Hierarchy:</b> MQTT channel used to publish data-notifications, should adhere to the official WIS2 Topic Hierarchy.</p>
-                        <p><i>Note: the dataset editor will automatically generate this based on your centre-id, data-policy and sub-topic selection</i></p>
+                        <p><b>Sub Topic 1:</b> 7th level of the Topic Hierarchy</p>
+                        <p><b>Sub Topic 2:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
+                        <p><i>Note: use 'experimental' if the channel for your data is not yet available.</i></p>
+                        <br>
+                        <p><b>Topic Hierarchy:</b> MQTT channel used to publish data-notifications.
+                            The dataset editor will automatically generate this based on your centre-id, data-policy and sub-topic selection</p>
                         <br>
                         <p><b>Earth System Disciplines:</b> A list of concepts that are referenced to a
                             vocabulary or
