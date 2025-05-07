@@ -146,11 +146,11 @@
                     <v-row>
                     </v-row>
                     <v-row>
-                        <v-col cols="2">
+                        <v-col cols="4">
                             <v-text-field label="Centre ID" type="string" v-model="model.identification.centreID"
                                 variant="outlined" clearable disabled></v-text-field>
                         </v-col>
-                        <v-col cols="2">
+                        <v-col cols="4">
                             <v-select label="WMO Data Policy" type="string" :items="['core', 'recommended']"
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
