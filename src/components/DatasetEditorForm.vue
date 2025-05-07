@@ -155,18 +155,32 @@
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <v-col cols="2">
-                            <v-select label="Sub Topic 1"
+                        <v-col cols="4">
+                            <v-select label="Discipline topic"
                                 :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 v-model="model.identification.subTopic1" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
-                        <v-col cols="6">
-                            <v-select label="Sub Topic 2"
-                                :items="subTopics2" item-title="description"
-                                v-model="model.identification.subTopic2" :rules="[rules.required]"
-                                variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
+                    </v-row>
+                    <v-row>
+                        <!-- toggle between selection sub-discipline topics and free-text input -->
+                        <v-col cols="8" v-if="!model.identification.isExperimental">
+                            <v-autocomplete label="Sub-discipline topics (choose one)"
+                            :items="subTopics2" item-title="description"
+                            v-model="model.identification.subTopic2" :rules="[rules.required]"
+                            variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-autocomplete>
                         </v-col>
+                        <v-col cols="8" v-else>
+                            <v-text-field label="Sub-discipline topics (free-text)" type="string"
+                            v-model="model.identification.subTopic2" :rules="[rules.required]"
+                            variant="outlined" clearable></v-text-field>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-checkbox v-model="model.identification.isExperimental" 
+                            label="experimental (free-text topic)"
+                            variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-checkbox>
+                        </v-col>
+                    </v-row>
                     <v-row>
                         <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
                         <v-col cols="12">
@@ -175,7 +189,6 @@
                                 item-title="description" item-value="value"
                                 variant="outlined" disabled></v-text-field>
                         </v-col>
-                    </v-row>
                     </v-row>
                     <v-row>
                         <v-col cols="4">
@@ -498,8 +511,8 @@
                             Data
                             Policy.</p>
                         <br>
-                        <p><b>Sub Topic 1:</b> 7th level of the Topic Hierarchy</p>
-                        <p><b>Sub Topic 2:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
+                        <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
+                        <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
                         <p><i>Note: use 'experimental' if the channel for your data is not yet available.</i></p>
                         <br>
                         <p><b>Topic Hierarchy:</b> MQTT channel used to publish data-notifications.
@@ -860,6 +873,7 @@ export default defineComponent({
                 identifier: 'urn:wmo:md:',
                 keywords: [],
                 wmoDataPolicy: 'core',
+                isExperimental: false,
                 subTopic1: 'weather',
                 subTopic2: null,
                 concepts: ['weather'],
@@ -1235,7 +1249,8 @@ export default defineComponent({
                 const responseData = await response.text();
                 const parsed = Papa.parse(responseData, { header: true });
                 // fill subTopics as an array of strings based on the first column in the csv
-                subTopics.value = parsed.data.map(item => item.Name);
+                // and filter out topics containing 'experimental'
+                subTopics.value = parsed.data.map(item => item.Name).filter(item => !item.includes('experimental'));
             } catch (error) {
                 console.error(error);
                 // Display error message to the user
@@ -1578,7 +1593,15 @@ export default defineComponent({
             let centreID = model.value.identification.centreID;
             let subTopic1 = model.value.identification.subTopic1;
             let subTopic2 = model.value.identification.subTopic2;
-
+            //if subTopic2 is not defined set to 'undefined'
+            if (model.value.identification.subTopic2 == null || model.value.identification.subTopic2 == undefined) {
+                subTopic2 = 'undefined';
+            }
+            // if isExperimental than pre-pend experimental/ to subTopic2
+            // and lowercase and remove special characters from subTopic2
+            if (model.value.identification.isExperimental) {
+                subTopic2 = 'experimental/' + subTopic2.toLowerCase().replace(/[^a-z0-9/-]/g, '');
+            }
             model.value.identification.topicHierarchy = `origin/a/wis2/${centreID}/data/${policy}/${subTopic1}/${subTopic2}`;
         };
 
@@ -1593,6 +1616,7 @@ export default defineComponent({
             model.value.identification.conceptScheme = template.themes.map(theme => theme.scheme)[0];
             model.value.identification.keywords = template.keywords;
             // Use centre ID and WMO data policy to create topic hierarchy
+            model.value.identification.isExperimental = false;
             model.value.identification.topicHierarchy = template.topicHierarchy
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
@@ -2320,6 +2344,12 @@ export default defineComponent({
                 // Set subTopic2 to null
                 model.value.identification.subTopic2 = null;
             }
+        });
+
+        watch(() => model.value.identification.isExperimental, () => {
+            // If the user changes the isExperimental value set subTopic2 to null
+            model.value.identification.subTopic2 = null;
+            updateTopicHierarchy();
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
