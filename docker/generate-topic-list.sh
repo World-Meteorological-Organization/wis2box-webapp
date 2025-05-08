@@ -66,30 +66,34 @@ if [ "$HEADER" != "Name" ]; then
   exit 1
 fi
 
-# Filter and write valid topics
-awk '
-NR == 1 { print $0; next }  # Print header
-{
-  gsub(/\r/, "", $0);  # Remove Windows line endings
-  lines[NR] = $0
-}
-END {
-  for (i = 2; i <= NR; i++) {
-    skip = 0
-    for (j = i+1; j <= NR; j++) {
-      if (index(lines[j], lines[i]) == 1 && lines[j] != lines[i]) {
-        skip = 1
-        break
-      }
-    }
-    if (!skip && lines[i] != "") {
-      print lines[i]
-      count++
-    }
-  }
-  print "Updated '"$OUTPUT_FILE"' with " count " topics" > "/dev/stderr"
-}
-' "$TMPDIR/$INPUT_FILE" > "$TARGET_DIR/$OUTPUT_FILE"
+# loop through each line of the CSV file
+# keep track of content of previous line
+# if previous line is a string contained within the current line
+# then skip the current line
+
+previous_line=""
+while IFS= read -r line; do
+  # Skip the header line
+  if [ "$line" = "Name" ]; then
+    continue
+  fi
+
+  # if string in previous line is contained in current line
+  if [ -n "$previous_line" ] && [[ "$line" == *"$previous_line"* ]]; then
+    continue
+  fi
+
+  # Write the line to the output file
+  echo "$line" >> "$TMPDIR/$OUTPUT_FILE"
+  previous_line="$line"
+done < "$TMPDIR/$INPUT_FILE"
+
+# Move the output file to the target directory
+mv "$TMPDIR/$OUTPUT_FILE" "$TARGET_DIR/$OUTPUT_FILE"
+
+# display the content of the output file
+echo "Generated topic list:"
+cat "$TARGET_DIR/$OUTPUT_FILE"
 
 # Verify output file was created
 if [ ! -f "$TARGET_DIR/$OUTPUT_FILE" ]; then

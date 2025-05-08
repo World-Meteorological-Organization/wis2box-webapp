@@ -1588,7 +1588,6 @@ export default defineComponent({
         };
 
         const updateTopicHierarchy = () => {
-            console.log("Updating topic hierarchy...");
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
             let subTopic1 = model.value.identification.subTopic1;
@@ -1621,8 +1620,6 @@ export default defineComponent({
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
-            console.log("SubTopic1: ", model.value.identification.topicHierarchy.split('/')[6]);
-            console.log("SubTopic2: ", model.value.identification.topicHierarchy.split('/').slice(7).join('/'));
             model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[6];
             model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(7).join('/');
             // Get resolution and resolution unit from template
@@ -2340,7 +2337,6 @@ export default defineComponent({
             const isSubTopic2InList = subTopics2.value.includes(model.value.identification.subTopic2);
             // If subTopic2 is not in the list, set it to null
             if (!isSubTopic2InList) {
-                console.log("SubTopic2", model.value.identification.subTopic2, "is not in the list of subTopics2");
                 // Set subTopic2 to null
                 model.value.identification.subTopic2 = null;
             }
