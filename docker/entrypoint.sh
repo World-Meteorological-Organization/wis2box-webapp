@@ -40,8 +40,10 @@ else
   export VITE_WEBAPP_HOMEPAGE_MESSAGE=$WIS2BOX_WEBAPP_HOMEPAGE_MESSAGE
 fi
 
-# update topics dropdown
-python docker/generate-topics-list.py /wis2box-webapp/public/wth
+set +e
+# run generate-topic-list.sh
+docker/generate-topic-list.sh /wis2box-webapp/public/wth || echo "Topic list generation failed, continuing..."
+set -e
 
 npm run build
 npm run preview

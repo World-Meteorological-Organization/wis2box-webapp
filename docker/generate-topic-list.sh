@@ -1,0 +1,102 @@
+#!/bin/sh
+
+# download wth-bundle.zip and extract earth-system-discipline.csv
+# and generate topics-dropdown-list.csv
+ZIP_URL="https://wmo-im.github.io/wis2-topic-hierarchy/wth-bundle.zip"
+INPUT_FILE="earth-system-discipline.csv"
+OUTPUT_FILE="topics-dropdown-list.csv"
+
+# Check input argument
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <target_directory>"
+  exit 1
+fi
+
+TARGET_DIR="$1"
+
+# Check directory exists and is writable
+if [ ! -d "$TARGET_DIR" ]; then
+  echo "Error: $TARGET_DIR does not exist"
+  exit 1
+fi
+
+if [ ! -w "$TARGET_DIR" ]; then
+  echo "Error: $TARGET_DIR is not writable"
+  exit 1
+fi
+
+echo "Preparing topic list..."
+
+TMPDIR=$(mktemp -d)
+ZIPFILE="$TMPDIR/wth-bundle.zip"
+
+# Download the zip file and check HTTP response
+HTTP_STATUS=$(curl -s -L -w "%{http_code}" -o "$ZIPFILE" "$ZIP_URL")
+if [ "$HTTP_STATUS" -ne 200 ]; then
+  echo "Error: Failed to download zip file from $ZIP_URL (HTTP $HTTP_STATUS)"
+  rm -rf "$TMPDIR"
+  exit 1
+fi
+
+# Check if file is a valid zip (magic header: PK\x03\x04)
+if ! head -c 4 "$ZIPFILE" | grep -q "$(printf 'PK\x03\x04')"; then
+  echo "Error: Downloaded file is not a valid zip archive"
+  rm -rf "$TMPDIR"
+  exit 1
+fi
+
+# Extract CSV file from zip
+unzip -p "$ZIPFILE" "$INPUT_FILE" > "$TMPDIR/$INPUT_FILE" 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo "Error: $INPUT_FILE not found in zip file"
+  rm -rf "$TMPDIR"
+  exit 1
+fi
+
+# Check that file is not empty
+if [ ! -s "$TMPDIR/$INPUT_FILE" ]; then
+  echo "Error: $INPUT_FILE is empty"
+  exit 1
+fi
+
+# Verify the first line is "Name"
+HEADER=$(head -n 1 "$TMPDIR/$INPUT_FILE" | tr -d '\r')
+if [ "$HEADER" != "Name" ]; then
+  echo "Error: $INPUT_FILE does not start with Name"
+  exit 1
+fi
+
+# Filter and write valid topics
+awk '
+NR == 1 { print $0; next }  # Print header
+{
+  gsub(/\r/, "", $0);  # Remove Windows line endings
+  lines[NR] = $0
+}
+END {
+  for (i = 2; i <= NR; i++) {
+    skip = 0
+    for (j = i+1; j <= NR; j++) {
+      if (index(lines[j], lines[i]) == 1 && lines[j] != lines[i]) {
+        skip = 1
+        break
+      }
+    }
+    if (!skip && lines[i] != "") {
+      print lines[i]
+      count++
+    }
+  }
+  print "Updated '"$OUTPUT_FILE"' with " count " topics" > "/dev/stderr"
+}
+' "$TMPDIR/$INPUT_FILE" > "$TARGET_DIR/$OUTPUT_FILE"
+
+# Verify output file was created
+if [ ! -f "$TARGET_DIR/$OUTPUT_FILE" ]; then
+  echo "Error: $OUTPUT_FILE not found in $TARGET_DIR"
+  exit 1
+fi
+
+# Cleanup
+rm -rf "$TMPDIR"
+echo "Topic list generated successfully at $TARGET_DIR/$OUTPUT_FILE"

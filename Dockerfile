@@ -1,5 +1,8 @@
 FROM node:lts-alpine
 
+# install curl and unzip
+RUN apk add --no-cache curl unzip
+
 # Set the working directory inside the container
 WORKDIR /wis2box-webapp
 
@@ -15,8 +18,9 @@ COPY . .
 # expose port 4173
 EXPOSE 4173
 
-# Copy the entrypoint script into /app and make it executable
+#  make scripts executable
 RUN chmod +x /wis2box-webapp/docker/entrypoint.sh
+RUN chmod +x /wis2box-webapp/docker/generate-topic-list.sh
 
 COPY docker/healthcheck.sh /wis2box-webapp/healthcheck.sh
 
