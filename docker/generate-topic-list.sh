@@ -68,25 +68,27 @@ fi
 
 # loop through each line of the CSV file
 # keep track of content of previous line
-# if previous line is a string contained within the current line
-# then skip the current line
+# get rid of non-leaf topics, by checking if the next line starts with the same string
+# Ensure output is empty to start with
+: > "$TMPDIR/$OUTPUT_FILE"
 
-previous_line=""
-while IFS= read -r line; do
-  # Skip the header line
-  if [ "$line" = "Name" ]; then
-    continue
-  fi
+prev=""
+while IFS= read -r current; do
+    # remove carriage return and line break characters
+    clean_current=$(echo "$current" | tr -d '\r\n')
+    clean_prev=$(echo "$prev" | tr -d '\r\n')
 
-  # if string in previous line is contained in current line
-  if [ -n "$previous_line" ] && [[ "$line" == *"$previous_line"* ]]; then
-    continue
-  fi
-
-  # Write the line to the output file
-  echo "$line" >> "$TMPDIR/$OUTPUT_FILE"
-  previous_line="$line"
+    if [ -n "$prev" ]; then
+        case "$clean_current" in
+            "$clean_prev"/*) ;;  # If current starts with prev/, do not write prev
+            *) echo "$prev" >> "$TMPDIR/$OUTPUT_FILE" ;;  # Otherwise, write prev to output
+        esac
+    fi
+    prev="$current"
 done < "$TMPDIR/$INPUT_FILE"
+
+# Write the last line
+[ -n "$prev" ] && echo "$prev" >> "$TMPDIR/$OUTPUT_FILE"
 
 # Move the output file to the target directory
 mv "$TMPDIR/$OUTPUT_FILE" "$TARGET_DIR/$OUTPUT_FILE"
