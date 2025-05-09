@@ -1,10 +1,10 @@
 {
   "label": "ocean/surface-based-observations/drifting-buoys",
-  "title": "Drifting buoy observations made as part of the --ENTER PROGRAM NAME HERE-- program",
-  "identifier": "urn:wmo:md:$CENTRE_ID:$DATA_POLICY.surface-based-observations.drifting-buoys.PROGRAM",
-  "topicHierarchy": "$CENTRE_ID/data/$DATA_POLICY/ocean/surface-based-observations/drifting-buoys",
+  "title": "Drifting buoy observations ($CENTRE_ID)",
+  "identifier": "urn:wmo:md:$CENTRE_ID:surface-based-observations.drifting-buoys",
+  "topicHierarchy": "origin/a/wis2/$CENTRE_ID/data/$DATA_POLICY/ocean/surface-based-observations/drifting-buoys",
   "language": "en",
-  "resolution": "P1H",
+  "resolution": "PT1H",
   "keywords": [
     "oceans",
     "surface current",
