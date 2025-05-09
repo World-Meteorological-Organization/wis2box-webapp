@@ -131,7 +131,7 @@
                                 <v-col cols="11">
                                     <v-text-field label="Identifier" type="string"
                                         v-model="model.identification.identifier"
-                                        :disabled="true"  variant="outlined">
+                                        disabled  variant="outlined">
                                     </v-text-field>
                                 </v-col>
                                 <v-col cols="1">    
@@ -146,29 +146,54 @@
                     <v-row>
                     </v-row>
                     <v-row>
-                        <v-col cols="2">
+                        <v-col cols="4">
                             <v-text-field label="Centre ID" type="string" v-model="model.identification.centreID"
                                 variant="outlined" clearable disabled></v-text-field>
                         </v-col>
-                        <v-col cols="2">
+                        <v-col cols="4">
                             <v-select label="WMO Data Policy" type="string" :items="['core', 'recommended']"
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <!-- Unless the user selects 'other' for the datatype 
-                        label, the topic hierarchy should remain disabled as 
-                        it is autofilled -->
-                        <v-col cols="8">
+                        <v-col cols="4">
+                            <v-select label="Discipline topic"
+                                :items="earthSystemDisciplines" item-title="name" item-value="name"
+                                v-model="model.identification.subTopic1" :rules="[rules.required]"
+                                variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <!-- toggle between selection sub-discipline topics and free-text input -->
+                        <v-col cols="8" v-if="!model.identification.isExperimental">
+                            <v-autocomplete label="Sub-discipline topics (choose one)"
+                            :items="subTopics2" item-title="description"
+                            v-model="model.identification.subTopic2" :rules="[rules.required]"
+                            variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-autocomplete>
+                        </v-col>
+                        <v-col cols="8" v-else>
+                            <v-text-field label="Sub-discipline topics (free-text)" type="string"
+                            v-model="model.identification.subTopic2" :rules="[rules.required]"
+                            variant="outlined" clearable></v-text-field>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-checkbox v-model="model.identification.isExperimental" 
+                            label="experimental (free-text topic)"
+                            variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-checkbox>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
+                        <v-col cols="12">
                             <v-text-field label="Topic Hierarchy" type="string"
                                 v-model="model.identification.topicHierarchy" :rules="[rules.required]"
-                                variant="outlined" :disabled="selectedTemplate?.label !== 'other'"></v-text-field>
+                                item-title="description" item-value="value"
+                                variant="outlined" disabled></v-text-field>
                         </v-col>
-
                     </v-row>
                     <v-row>
                         <v-col cols="4">
                             <v-select label="Earth System Disciplines" v-model="model.identification.concepts" multiple
-                                :items="earthSystemDisciplines" item-title="description" item-value="name"
+                                :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 variant="outlined"></v-select>
                         </v-col>
                         <v-col cols="8">
@@ -446,10 +471,9 @@
                         <p><b>Centre ID:</b> The agency acronym (in lower case and no spaces), as specified by
                             the WMO Member.</p>
                         <br>
-                        <p><b>Data Type:</b> The type of data you are creating metadata for. <i>If 'other' is
-                                selected,
-                                more
-                                fields will have to be manually filled.</i></p>
+                        <p><b>Data Type:</b> Template that pre-fills some of the input form, available only for certain Data Types. 
+                            <i>If 'other' is selected, more fields will have to be manually filled.</i>
+                        </p>
                         <br>
                     </v-card-text>
                 </v-card>
@@ -487,10 +511,12 @@
                             Data
                             Policy.</p>
                         <br>
-                        <p><b>Topic Hierarchy:</b> The unique hierarchy for this data.</p>
-                        <p><i>Note: Unless 'other' was selected initially, this field is pre-filled and cannot
-                                be
-                                edited.</i></p>
+                        <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
+                        <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
+                        <p><i>Note: use 'experimental' if the channel for your data is not yet available.</i></p>
+                        <br>
+                        <p><b>Topic Hierarchy:</b> MQTT channel used to publish data-notifications.
+                            The dataset editor will automatically generate this based on your centre-id, data-policy and sub-topic selection</p>
                         <br>
                         <p><b>Earth System Disciplines:</b> A list of concepts that are referenced to a
                             vocabulary or
@@ -847,6 +873,9 @@ export default defineComponent({
                 identifier: 'urn:wmo:md:',
                 keywords: [],
                 wmoDataPolicy: 'core',
+                isExperimental: false,
+                subTopic1: 'weather',
+                subTopic2: null,
                 concepts: ['weather'],
                 conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline'
             },
@@ -926,6 +955,10 @@ export default defineComponent({
         const countryCodeList = ref([]);
         // List of earth system disciplines
         const earthSystemDisciplines = ref([]);
+        // list of valid sub-topics
+        const subTopics = ref([]);
+        // list of valid sub-topics2
+        const subTopics2 = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
@@ -1204,6 +1237,27 @@ export default defineComponent({
             }
         };
 
+        // Fetches a list of valid topics
+        const loadTopics = async () => {
+            try {
+                // Get list of topics from the CSV file available within the current website
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/wth/topics-dropdown-list.csv`);
+                if (!response.ok) {
+                    throw new Error('Network response was not okay, failed to load topics list.');
+                }
+                // Get CSV response and parse it into an object
+                const responseData = await response.text();
+                const parsed = Papa.parse(responseData, { header: true });
+                // fill subTopics as an array of strings based on the first column in the csv
+                // and filter out topics containing 'experimental'
+                subTopics.value = parsed.data.map(item => item.Name).filter(item => !item.includes('experimental'));
+            } catch (error) {
+                console.error(error);
+                // Display error message to the user
+                message.value = 'Error loading topics list.';
+            }
+        };
+
         // Loads the data type templates
         const loadTemplates = async () => {
             // Load all JSON files in the templates folder
@@ -1223,7 +1277,6 @@ export default defineComponent({
         // When the user specifies a dataset identifier, load the corresponding metadata
         const loadMetadata = async () => {
             // Page values
-            console.log("Loading metadata...")
             working.value = true;
             metadataLoaded.value = false;
             datasetSpecified.value = true;
@@ -1304,6 +1357,10 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             let fullTopic = schema.properties['wmo:topicHierarchy'];
             formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+            // subTopic1 is the 7th-level
+            formModel.identification.subTopic1 = fullTopic.split('/')[6];
+            // subTopic2 is the everything after the 7th level
+            formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/'); 
 
             // Time period information
             if (schema.time?.interval) {
@@ -1530,15 +1587,21 @@ export default defineComponent({
             return id;
         };
 
-
-        // replace the data policy in the topic hierarchy
-        const replaceDataPolicyInTopicHierarchy = () => {
+        const updateTopicHierarchy = () => {
             let policy = model.value.identification.wmoDataPolicy;
-            let hierarchy = model.value.identification.topicHierarchy;
-
-            // Replace 'core' or 'recommended' in the topic hierachy
-            // string with the policy
-            model.value.identification.topicHierarchy = hierarchy.replace(/core|recommended/g, policy);
+            let centreID = model.value.identification.centreID;
+            let subTopic1 = model.value.identification.subTopic1;
+            let subTopic2 = model.value.identification.subTopic2;
+            //if subTopic2 is not defined set to 'undefined'
+            if (model.value.identification.subTopic2 == null || model.value.identification.subTopic2 == undefined) {
+                subTopic2 = 'undefined';
+            }
+            // if isExperimental than pre-pend experimental/ to subTopic2
+            // and lowercase and remove special characters from subTopic2
+            if (model.value.identification.isExperimental) {
+                subTopic2 = 'experimental/' + subTopic2.toLowerCase().replace(/[^a-z0-9/-]/g, '');
+            }
+            model.value.identification.topicHierarchy = `origin/a/wis2/${centreID}/data/${policy}/${subTopic1}/${subTopic2}`;
         };
 
         // Autofill form based on template
@@ -1552,10 +1615,13 @@ export default defineComponent({
             model.value.identification.conceptScheme = template.themes.map(theme => theme.scheme)[0];
             model.value.identification.keywords = template.keywords;
             // Use centre ID and WMO data policy to create topic hierarchy
+            model.value.identification.isExperimental = false;
             model.value.identification.topicHierarchy = template.topicHierarchy
                 .replace('$CENTRE_ID', model.value.identification.centreID)
                 .replace('$DATA_POLICY', model.value.identification.wmoDataPolicy)
                 .replace(/\..*$/, '');
+            model.value.identification.subTopic1 = model.value.identification.topicHierarchy.split('/')[6];
+            model.value.identification.subTopic2 = model.value.identification.topicHierarchy.split('/').slice(7).join('/');
             // Get resolution and resolution unit from template
             const match = template.resolution.match(/P(\d+)([DMY])/i);
             if (match) {
@@ -1565,7 +1631,7 @@ export default defineComponent({
             const match2 = template.resolution.match(/PT(\d+)([HM])/i);
             if (match2) {
                 model.value.extents.resolution = parseInt(match2[1]);
-                formModel.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
+                model.value.extents.resolutionUnit = `T${match2[2].toUpperCase()}`;
             }
             // print to console if no match found
             if( !match && !match2) {
@@ -1873,12 +1939,9 @@ export default defineComponent({
 
         // Helper method to format the WIS2 topic hierarchy
         const formatWIS2TopicHierarchy = (topic) => {
-            return topic.replace(/\//g, '.');
-        }
-
-        // Helper method to format the WMO topic hierarchy
-        const formatWMOTopicHierarchy = (topic) => {
-            return `origin/a/wis2/${topic}`
+            // Remove the 'origin/a/wis2/' prefix
+            // Replace the '/' with '.' to match the schema
+            return topic.replace(/origin\/a\/wis2\//g, '').replace(/\//g, '.');
         }
 
         // Transforms the form data to the WCMP2 schema format
@@ -1993,7 +2056,7 @@ export default defineComponent({
             schemaModel.properties.created = form.extents.dateCreated || currentDTNoMilliseconds;
             schemaModel.properties.updated = currentDTNoMilliseconds;
             schemaModel.properties["wmo:dataPolicy"] = form.identification.wmoDataPolicy;
-            schemaModel.properties["wmo:topicHierarchy"] = formatWMOTopicHierarchy(form.identification.topicHierarchy);
+            schemaModel.properties["wmo:topicHierarchy"] = form.identification.topicHierarchy;
             schemaModel.properties.id = form.identification.identifier;
 
             return schemaModel;
@@ -2253,6 +2316,7 @@ export default defineComponent({
             loadList();
             loadOfficialCentres();
             loadDisciplines();
+            loadTopics();
             loadTemplates();
             loadPluginLists();
             loadMappings();
@@ -2261,9 +2325,40 @@ export default defineComponent({
 
         // Watched
 
+        watch(() => model.value.identification.subTopic1, () => {    
+            // If the user changes sub-topic1, update the options in sub-topic2
+            const selectedSubTopic1 = model.value.identification.subTopic1;
+            // Filter the subTopics list to include only options starting with subTopic1,
+            // and remove the "subTopic1/" prefix from the string
+            subTopics2.value = subTopics.value
+            .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
+            .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
+            // check if subTopic2 is in the list of subTopics2
+            const isSubTopic2InList = subTopics2.value.includes(model.value.identification.subTopic2);
+            // If subTopic2 is not in the list, set it to null
+            if (!isSubTopic2InList) {
+                // Set subTopic2 to null
+                model.value.identification.subTopic2 = null;
+            }
+        });
+
+        watch(() => model.value.identification.isExperimental, () => {
+            // If the user changes the isExperimental value set subTopic2 to null
+            model.value.identification.subTopic2 = null;
+            updateTopicHierarchy();
+        });
+
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
-            replaceDataPolicyInTopicHierarchy();
+            updateTopicHierarchy();
+        });
+        // if the user changes the sub topic 1, update the topic hierarchy accordingly
+        watch(() => model.value.identification.subTopic1, () => {
+            updateTopicHierarchy();
+        });
+        // if the user changes the sub topic 2, update the topic hierarchy accordingly
+        watch(() => model.value.identification.subTopic2, () => {
+            updateTopicHierarchy();
         });
 
         // For each plugin name, auto populate the plugin fields
@@ -2303,6 +2398,8 @@ export default defineComponent({
         return {
             defaults,
             earthSystemDisciplines,
+            subTopics,
+            subTopics2,
             durations,
             pluginList,
             templateList,
