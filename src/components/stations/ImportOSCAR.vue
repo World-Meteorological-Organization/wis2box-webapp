@@ -29,9 +29,9 @@
     <v-card max-width="1200px">
       <v-card-title class="big-title">Import station from OSCAR/Surface</v-card-title>
       <v-card-item>
-        <v-form>
-          <v-text-field :rules="[rules.validWSI]" v-model="wsi" label="WIGOS Station Identifier"
-            hint="Enter WIGOS Station Identifier" persistent-hint @blur="trimWSI"/>
+        <v-form @submit.prevent="submit">
+            <v-text-field :rules="[rules.validWSI]" v-model="wsi" label="WIGOS Station Identifier"
+            hint="Enter WIGOS Station Identifier" persistent-hint @blur="trimWSI" @keyup.enter="submit"/>
           <v-card-actions align="center">
             <v-btn @click="submit">Search</v-btn>
           </v-card-actions>
@@ -53,41 +53,41 @@
         <v-card-item>
           <v-text-field label="Traditional station identifier"
             v-model="station.properties.traditional_station_identifier"
-            hint="Enter the traditional (5 or 7 digit) station identifier" persistent-hint>
+            hint="Traditional (5 or 7 digit) station identifier (required for FM-12 to BUFR conversion)" persistent-hint>
           </v-text-field>
-        </v-card-item>
-        <v-card-item>
-          <v-container>
-            <v-row>
-              <v-col cols="4">
-                <v-row>
-                  <v-text-field label="Longitude (decimal degrees E), -180 to 180" v-model="station.geometry.longitude"
-                    :rules="[rules.validLongitude]" type="number" hint="Enter the station longitude (degrees E)"
-                    persistent-hint />
-                </v-row>
-                <v-row>
-                  <v-text-field label="Latitude (decimal degrees N), -90 to 90" v-model="station.geometry.latitude"
-                    :rules="[rules.validLatitude]" type="number" hint="Enter the station latitude (degrees N)"
-                    persistent-hint />
-                </v-row>
-                <v-row>
-                  <v-text-field label="Station elevation above sea level (metres)" v-model="station.geometry.elevation"
-                    :rules="[rules.validElevation]" type="number" hint="Station elevation above sea level (metres)"
-                    persistent-hint />
-                </v-row>
-              </v-col>
-              <v-col cols="8">
-                <LocatorMap :longitude="parseFloat(station.geometry.longitude)"
-                  :latitude="parseFloat(station.geometry.latitude)" />
-              </v-col>
-            </v-row>
-          </v-container>
         </v-card-item>
         <v-card-item>
           <CodeListSelector codeList="facilityType" label="Facility type" defaultHint="Select facility type"
             v-model="station.properties.facility_type" />
         </v-card-item>
-        <v-card-item>
+        <v-card-item v-if="hasGeometry">
+          <v-container>
+            <v-row>
+              <v-col cols="4">
+          <v-row>
+            <v-text-field label="Longitude (decimal degrees E), -180 to 180" v-model="station.geometry.longitude"
+              :rules="[rules.validLongitude]" type="number" hint="Enter the station longitude (degrees E)"
+              persistent-hint />
+          </v-row>
+          <v-row>
+            <v-text-field label="Latitude (decimal degrees N), -90 to 90" v-model="station.geometry.latitude"
+              :rules="[rules.validLatitude]" type="number" hint="Enter the station latitude (degrees N)"
+              persistent-hint />
+          </v-row>
+          <v-row>
+            <v-text-field label="Station elevation above sea level (metres)" v-model="station.geometry.elevation"
+              :rules="[rules.validElevation]" type="number" hint="Station elevation above sea level (metres)"
+              persistent-hint />
+          </v-row>
+              </v-col>
+              <v-col cols="8">
+          <LocatorMap :longitude="parseFloat(station.geometry.longitude)"
+            :latitude="parseFloat(station.geometry.latitude)" />
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card-item>
+        <v-card-item v-if="isLandStation">
           <v-text-field label="Barometer height above sea level" v-model="station.properties.barometer_height"
             :rules="[rules.validBarometerHeight]" hint="Enter barometer height (metres)" persistent-hint type="number">
           </v-text-field>
@@ -189,10 +189,10 @@ export default defineComponent({
     const rules = ref({
       validWSI: value => /^0-[0-9]{1,5}-[0-9]{0,5}-[0-9a-zA-Z]{1,16}$/.test(value) || 'Invalid WSI',
       validTSI: value => value && value.length > 0 ? true : 'TSI must be set',
-      validLongitude: value => !(Math.abs(value) > 180 || isNaN(value)) ? true : 'Invalid longitude',
-      validLatitude: value => value && !(Math.abs(value) > 90 || isNaN(value)) ? true : 'Invalid latitude',
-      validElevation: value => value && !isNaN(value) ? true : 'Invalid elevation',
-      validBarometerHeight: value => value && !isNaN(value) ? true : 'Invalid barometer height',
+      validLongitude: value => (value && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
+      validLatitude: value => (value && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
+      validElevation: value => (value && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
+      validBarometerHeight: value => (value && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
       validName: value => value && value.length > 0 ? true : 'Name must be set',
       token: value => value && value.length > 0 ? true : 'Please enter the authorization token',
       topic: value => value.length > 0 ? true : 'Select at least one topic'
@@ -200,6 +200,8 @@ export default defineComponent({
     const data = ref(null);
     const router = useRouter();
     const formValid = ref(null);
+    const hasGeometry = ref(null);
+    const isLandStation = ref(null);
     const territoryOptions = ref(null);
     const WMORegionOptions = ref(null);
     const facilityTypeOptions = ref(null);
@@ -242,12 +244,6 @@ export default defineComponent({
       let record = {
         id: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [parseFloat(station.value.geometry.longitude),
-          parseFloat(station.value.geometry.latitude),
-          parseFloat(station.value.geometry.elevation)]
-        },
         properties: {
           name: stripHTMLTags(station.value.properties.name),
           wigos_station_identifier: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
@@ -262,6 +258,21 @@ export default defineComponent({
           status: station.value.properties.status['skos:notation'] ?? null,
           id: stripHTMLTags(station.value.properties.wigos_station_identifier)  // WSI
         }
+      }
+      // if facility_type is contains the string Fixed add geometry to record
+      if (station.value.properties.facility_type['skos:notation'] &&
+        station.value.properties.facility_type['skos:notation'].includes('Fixed')) {
+        record.geometry = {
+          type: 'Point',
+          coordinates: [parseFloat(station.value.geometry.longitude),
+          parseFloat(station.value.geometry.latitude),
+          parseFloat(station.value.geometry.elevation)]
+        }
+      }
+      else {
+        console.log("Facility type is" + station.value.properties.facility_type['skos:notation'] +
+          " geometry not added to record");
+        console.log("No geometry added to record");
       }
 
       try {
@@ -386,9 +397,23 @@ export default defineComponent({
       }
     };
 
-    // Watchers
-    watch(() => station.value.properties.wmo_region, (newValue) => {
-      console.log(newValue);
+    watch(() => station.value.properties.facility_type, (newValue) => {
+      let facilityType = newValue['skos:notation'];
+      // check if facilityType ends with 'Fixed'
+      if (facilityType && facilityType.endsWith('Fixed')) {
+        console.log("Facility type is Fixed");
+        hasGeometry.value = true;
+        if (facilityType.includes('landFixed')) {
+          isLandStation.value = true;
+        } else {
+          isLandStation.value = false;
+        }
+      }
+      if (facilityType && !facilityType.endsWith('Fixed')) {
+        console.log("Facility type is not Fixed");
+        hasGeometry.value = false;
+        isLandStation.value = false;
+      }
     });
 
     return {
@@ -399,6 +424,8 @@ export default defineComponent({
       router,
       station,
       formValid,
+      hasGeometry,
+      isLandStation,
       confirm,
       showLoading,
       redirectMessage,
