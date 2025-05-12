@@ -259,6 +259,7 @@ export default defineComponent({
           id: stripHTMLTags(station.value.properties.wigos_station_identifier)  // WSI
         }
       }
+      
       // if facility_type is contains the string Fixed add geometry to record
       if (station.value.properties.facility_type['skos:notation'] &&
         station.value.properties.facility_type['skos:notation'].includes('Fixed')) {
@@ -270,9 +271,7 @@ export default defineComponent({
         }
       }
       else {
-        console.log("Facility type is" + station.value.properties.facility_type['skos:notation'] +
-          " geometry not added to record");
-        console.log("No geometry added to record");
+        record.geometry = null;
       }
 
       try {
