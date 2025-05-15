@@ -335,6 +335,18 @@ export default defineComponent({
       }
     })
 
+    // watch for any change in station properties and evaluation of rules
+    watch(() => station.value, (newValue) => {
+      if (newValue) {
+        // print the rules to the console
+        console.log("Station properties", newValue);
+        console.log("Station properties", newValue.properties);
+        console.log("Rules", rules.value);
+        console.log("Form valid", formValid.value);
+      }
+    }, { deep: true });
+ 
+
     watch(() => station.value?.properties?.facility_type, (newValue) => {
       let facilityType = newValue?.['skos:notation'] || null;
       // check if facilityType ends with 'Fixed'
