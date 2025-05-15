@@ -317,8 +317,17 @@ export default defineComponent({
       }
     }
 
-    watch(() => station.value.properties.facility_type, (newValue) => {
-      let facilityType = newValue['skos:notation'];
+    // Watchers
+    watch((route), () => {
+      if (route.query.action === "edit") {
+        readonly.value = false;
+      } else {
+        readonly.value = true;
+      }
+    })
+
+    watch(() => station.value?.properties?.facility_type, (newValue) => {
+      let facilityType = newValue?.['skos:notation'] || null;
       // check if facilityType ends with 'Fixed'
       if (facilityType && facilityType.endsWith('Fixed')) {
         console.log("Facility type is Fixed");
@@ -328,20 +337,10 @@ export default defineComponent({
         } else {
           isLandStation.value = false;
         }
-      }
-      if (facilityType && !facilityType.endsWith('Fixed')) {
-        console.log("Facility type is not Fixed");
+      } else {
+        console.log("Facility type is not Fixed or undefined");
         hasGeometry.value = false;
         isLandStation.value = false;
-      }
-    });
-
-    // Watchers
-    watch((route), () => {
-      if (route.query.action === "edit") {
-        readonly.value = false;
-      } else {
-        readonly.value = true;
       }
     })
 
@@ -359,6 +358,8 @@ export default defineComponent({
       token,
       formValid,
       cancelEdit,
+      hasGeometry,
+      isLandStation,
       selectedDataset
     };
   }
