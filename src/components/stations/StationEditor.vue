@@ -307,6 +307,15 @@ export default defineComponent({
               latitude: data.geometry.coordinates[1],
               elevation: data.geometry.coordinates[2]
             };
+          } else {
+            console.log("No geometry found for station, setting to null");
+            station.value.geometry = {
+              type: 'Point',
+              coordinates: [null, null, null],
+              longitude: null,
+              latitude: null,
+              elevation: null
+            };
           };
         }
       }
