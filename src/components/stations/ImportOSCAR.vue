@@ -113,7 +113,7 @@
             hint='Enter wis2box auth token for "collections/stations"' persistent-token></v-text-field>
         </v-card-item>
         <v-card-actions>
-          <v-btn @click="confirm()" :disabled="!formValid" elevation=2>Save</v-btn>
+          <v-btn @click="confirm()" elevation=2>Save</v-btn>
           <v-btn @click="router.push('/station')" elevation=2>Cancel</v-btn>
         </v-card-actions>
       </v-form>
@@ -238,6 +238,11 @@ export default defineComponent({
 
 
     const confirm = async () => {
+      if (!formValid.value) {
+        errorMessage.value = "Please correct validation errors before submitting"
+        showDialog.value = true;
+        return;
+      }
       let apiURL = `${import.meta.env.VITE_API_URL}/collections/stations/items`;
       let leaf = "";
       apiURL = apiURL + leaf;
