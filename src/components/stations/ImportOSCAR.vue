@@ -110,6 +110,7 @@
         <v-card-item>
           <v-text-field :rules="[rules.token]" type="password" autocomplete="one-time-code" clearable v-model="token"
             label='wis2box auth token for "collections/stations"'
+            :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" :type="showToken ? 'text' : 'token'" @click:append="showToken = !showToken"
             hint='Enter wis2box auth token for "collections/stations"' persistent-token></v-text-field>
         </v-card-item>
         <v-card-actions>
