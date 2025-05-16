@@ -108,9 +108,10 @@
           <TopicSelector v-model="station.properties.topics" multiple :rules="[rules.topic]" class="mt-2" />
         </v-card-item>
         <v-card-item>
-          <v-text-field :rules="[rules.token]" type="password" autocomplete="one-time-code" clearable v-model="token"
+          <v-text-field :rules="[rules.token]" autocomplete="one-time-code" clearable v-model="token"
             label='wis2box auth token for "collections/stations"'
-            :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" :type="showToken ? 'text' : 'password'" @click:append="showToken = !showToken"
+            :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" 
+            :type="showToken ? 'text' : 'password'" @click:append="showToken = !showToken"
             hint='Enter wis2box auth token for "collections/stations"' persistent-token></v-text-field>
         </v-card-item>
         <v-card-actions>
@@ -409,7 +410,6 @@ export default defineComponent({
       let facilityType = newValue['skos:notation'];
       // check if facilityType ends with 'Fixed'
       if (facilityType && facilityType.endsWith('Fixed')) {
-        console.log("Facility type is Fixed");
         hasGeometry.value = true;
         if (facilityType.includes('landFixed')) {
           isLandStation.value = true;
@@ -418,7 +418,6 @@ export default defineComponent({
         }
       }
       if (facilityType && !facilityType.endsWith('Fixed')) {
-        console.log("Facility type is not Fixed");
         hasGeometry.value = false;
         isLandStation.value = false;
       }

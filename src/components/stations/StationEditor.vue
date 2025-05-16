@@ -68,9 +68,10 @@
             <TopicSelector v-model="station.properties.topics" multiple :readonly="readonly"
               :rules="[rules.topic]" class="mt-2" />
             <v-divider />
-            <v-text-field :rules="[rules.token]" type="password" autocomplete="one-time-code" clearable v-model="token"
+            <v-text-field :rules="[rules.token]" autocomplete="one-time-code" clearable v-model="token"
               :disabled="readonly" label='wis2box auth token for "collections/stations"'
-              :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" :type="showToken ? 'text' : 'password'" @click:append="showToken = !showToken"
+              :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" 
+              :type="showToken ? 'text' : 'password'" @click:append="showToken = !showToken"
               hint='Enter wis2box auth token for "collections/stations"' persistent-token variant="outlined"
               class="my-5"></v-text-field>
             <v-card-actions v-if="!readonly">
