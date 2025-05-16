@@ -129,6 +129,7 @@ export default defineComponent({
     const isLandStation = ref(null);
     const selectedDataset = ref(null);
     const stationForm = ref(null);
+    const showToken = ref(false);
 
     // Define validation rules
     const rules = ref({
@@ -366,6 +367,7 @@ export default defineComponent({
       token,
       formValid,
       stationForm,
+      showToken,
       cancelEdit,
       hasGeometry,
       isLandStation,

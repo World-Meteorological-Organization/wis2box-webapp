@@ -39,7 +39,7 @@
       </v-card-item>
     </v-card>
     <v-card v-if="station && station._meta.ready" max-width="1200px">
-      <v-form v-model="formValid" align="left">
+      <v-form ref="stationForm" v-model="formValid" align="left">
         <v-card-item>
           <v-text-field label="Station name" v-model="station.properties.name" readonly :rules="[rules.validName]"
             hint="Enter name of station" persistent-hint>
@@ -114,7 +114,7 @@
             hint='Enter wis2box auth token for "collections/stations"' persistent-token></v-text-field>
         </v-card-item>
         <v-card-actions>
-          <v-btn @click="confirm()" elevation=2>Save</v-btn>
+          <v-btn @click="saveStation()" elevation=2>Save</v-btn>
           <v-btn @click="router.push('/station')" elevation=2>Cancel</v-btn>
         </v-card-actions>
       </v-form>
@@ -208,6 +208,8 @@ export default defineComponent({
     const facilityTypeOptions = ref(null);
     const operatingStatusOptions = ref(null);
     const selectedDataset = ref(null);
+    const stationForm = ref(null);
+    const showToken = ref(false);
 
     onBeforeMount(async () => {
       territoryOptions.value = await loadCodeList('territory');
@@ -238,9 +240,10 @@ export default defineComponent({
     };
 
 
-    const confirm = async () => {
-      if (!formValid.value) {
-        errorMessage.value = "Please correct validation errors before submitting"
+    const saveStation = async () => {
+      const { valid } = await stationForm.value.validate();
+      if (!valid) {
+        errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
         return;
       }
@@ -431,7 +434,7 @@ export default defineComponent({
       formValid,
       hasGeometry,
       isLandStation,
-      confirm,
+      saveStation,
       showLoading,
       redirectMessage,
       redirectWarning,
@@ -439,7 +442,9 @@ export default defineComponent({
       submit,
       token,
       selectedDataset,
-      trimWSI
+      trimWSI,
+      showToken,
+      stationForm
     };
   }
 });
