@@ -154,7 +154,7 @@ export default defineComponent({
     };
 
     const saveStation = async () => {
-      const isValid = await formValid.value.validate();
+      const isValid = await formValid.validate();
       if (!isValid) {
         console.log("Form validation failed. Checking individual field errors...");
 
