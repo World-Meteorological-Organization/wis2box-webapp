@@ -11,7 +11,7 @@
   </template>
   
   <script>
-  import { defineComponent, ref, computed, onBeforeMount, watch } from 'vue';
+  import { defineComponent, ref, computed, onBeforeMount, watch, onMounted } from 'vue';
   import { VSelect, VTextField } from 'vuetify/lib/components/index.mjs';
   
   
@@ -120,6 +120,15 @@
           emit("update:modelValue", selected.value);
         }
       });
+
+      // after the component is mounted validate the selected value
+      onMounted(() => {
+        console.log("TopicSelector mounted");
+        // print the selected value
+        console.log("Selected value: ", selected.value);
+        emit("update:modelValue", selected.value);
+      });
+
   
       watch(() => props.modelValue, (newValue) => {
         selected.value = newValue;
