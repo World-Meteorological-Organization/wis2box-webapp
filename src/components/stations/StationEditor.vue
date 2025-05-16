@@ -12,7 +12,7 @@
     <v-card-title v-if="!readonly">{{ route.params.id ? 'Edit' : 'Create new' }} station</v-card-title>
     <v-card-title v-else>View station</v-card-title>
     <v-card v-if="station" max-width="1200px">
-      <v-form ref="formRef" v-model="formValid" align="left">
+      <v-form ref="stationForm" v-model="formValid" align="left">
         <v-container class="pa-5">
           <v-text-field label="Station name" v-model="station.properties.name" :rules="[rules.validName]"
             :readonly="readonly || route.params.id.length > 0" hint="Enter name of station" persistent-hint
@@ -124,10 +124,10 @@ export default defineComponent({
     const msg = ref('');
     const token = ref(null);
     const formValid = ref(false);
-    const formRef = ref(null);
     const hasGeometry = ref(null);
     const isLandStation = ref(null);
     const selectedDataset = ref(null);
+    const stationForm = ref(null);
 
     // Define validation rules
     const rules = ref({
@@ -155,30 +155,10 @@ export default defineComponent({
     };
 
     const saveStation = async () => {
-      const isValid = await formRef.value.validate();
-      if (!isValid) {
-        console.log("Form validation failed. Checking individual field errors...");
-
-        // Check each validation rule and log the failing fields
-        const validationResults = {
-            name: rules.value.validName(station.value.properties.name),
-            wsi: rules.value.validWSI(station.value.properties.wigos_station_identifier),
-            tsi: rules.value.validTSI(station.value.properties.traditional_station_identifier),
-            longitude: rules.value.validLongitude(station.value.geometry.longitude),
-            latitude: rules.value.validLatitude(station.value.geometry.latitude),
-            elevation: rules.value.validElevation(station.value.geometry.elevation),
-            barometerHeight: rules.value.validBarometerHeight(station.value.properties.barometer_height),
-            token: rules.value.token(token.value),
-            topics: rules.value.topic(station.value.properties.topics),
-        };
-
-        for (const [field, result] of Object.entries(validationResults)) {
-            if (result !== true) {
-                console.log(`Validation failed for field "${field}": ${result}`);
-            }
-        }
-        
-        errorMessage.value = "Please correct validation errors before submitting"
+     
+      const isFormValid = await stationForm.value.validate();
+      if (!isFormValid) {
+        errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
         return;
       }
@@ -389,6 +369,7 @@ export default defineComponent({
       errorMessage,
       token,
       formValid,
+      stationForm,
       cancelEdit,
       hasGeometry,
       isLandStation,
