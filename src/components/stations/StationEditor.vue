@@ -12,7 +12,7 @@
     <v-card-title v-if="!readonly">{{ route.params.id ? 'Edit' : 'Create new' }} station</v-card-title>
     <v-card-title v-else>View station</v-card-title>
     <v-card v-if="station" max-width="1200px">
-      <v-form v-model="formValid" align="left">
+      <v-form ref="formRef" v-model="formValid" align="left">
         <v-container class="pa-5">
           <v-text-field label="Station name" v-model="station.properties.name" :rules="[rules.validName]"
             :readonly="readonly || route.params.id.length > 0" hint="Enter name of station" persistent-hint
@@ -123,7 +123,8 @@ export default defineComponent({
     const readonly = ref(false);
     const msg = ref('');
     const token = ref(null);
-    const formValid = ref(null);
+    const formValid = ref(false);
+    const formRef = ref(null);
     const hasGeometry = ref(null);
     const isLandStation = ref(null);
     const selectedDataset = ref(null);
@@ -154,7 +155,7 @@ export default defineComponent({
     };
 
     const saveStation = async () => {
-      const isValid = await formValid.validate();
+      const isValid = await formRef.value.validate();
       if (!isValid) {
         console.log("Form validation failed. Checking individual field errors...");
 
