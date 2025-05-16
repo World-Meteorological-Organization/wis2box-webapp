@@ -69,7 +69,7 @@
               :rules="[rules.topic]" class="mt-2" />
             <v-divider />
             <v-text-field :rules="[rules.token]" type="password" autocomplete="one-time-code" clearable v-model="token"
-              label='wis2box auth token for "collections/stations"'
+              :disabled="readonly" label='wis2box auth token for "collections/stations"'
               hint='Enter wis2box auth token for "collections/stations"' persistent-token variant="outlined"
               class="my-5"></v-text-field>
             <v-card-actions v-if="!readonly">
@@ -159,11 +159,7 @@ export default defineComponent({
       if (!valid) {
         errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
-        console.log("Form is invalid, do not submit");
         return;
-      }
-      else {
-        console.log("Form is valid, proceeding to save station");
       }
       let record = {
         id: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
@@ -211,7 +207,6 @@ export default defineComponent({
         body: JSON.stringify(record)
       });
       if (!response.ok) {
-        console.log(record);
         if (response.status == 401) {
           errorMessage.value = "Unauthorized, please provide a valid 'collections/stations' token"
         }
@@ -314,7 +309,6 @@ export default defineComponent({
               elevation: data.geometry.coordinates[2]
             };
           } else {
-            console.log("No geometry found for station, setting to null");
             station.value.geometry = {
               type: 'Point',
               coordinates: [null, null, null],
@@ -345,7 +339,6 @@ export default defineComponent({
       let facilityType = newValue?.['skos:notation'] || null;
       // check if facilityType ends with 'Fixed'
       if (facilityType && facilityType.endsWith('Fixed')) {
-        console.log("Facility type is Fixed");
         hasGeometry.value = true;
         if (facilityType.includes('landFixed')) {
           isLandStation.value = true;
@@ -353,7 +346,6 @@ export default defineComponent({
           isLandStation.value = false;
         }
       } else {
-        console.log("Facility type is not Fixed or undefined");
         hasGeometry.value = false;
         isLandStation.value = false;
       }
