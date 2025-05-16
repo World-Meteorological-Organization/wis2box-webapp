@@ -107,7 +107,6 @@
       onBeforeMount(async () => {
         let m = false;
         await fetchOptions();
-        
         if (props.modelValue && props.modelValue.length) {
           for (const topic of props.modelValue) {
             const option = options.value.find(option => option.topic === topic);
@@ -122,7 +121,6 @@
         }
       });
 
-  
       watch(() => props.modelValue, (newValue) => {
         selected.value = newValue;
       });
