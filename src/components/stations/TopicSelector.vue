@@ -120,7 +120,7 @@
           emit("update:modelValue", selected.value);
         }
       });
-
+  
       watch(() => props.modelValue, (newValue) => {
         selected.value = newValue;
       });

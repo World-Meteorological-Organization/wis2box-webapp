@@ -123,7 +123,7 @@ export default defineComponent({
     const readonly = ref(false);
     const msg = ref('');
     const token = ref(null);
-    const formValid = ref(false);
+    const formValid = ref(null);
     const hasGeometry = ref(null);
     const isLandStation = ref(null);
     const selectedDataset = ref(null);
@@ -155,12 +155,16 @@ export default defineComponent({
     };
 
     const saveStation = async () => {
-     
+  
       const isFormValid = await stationForm.value.validate();
       if (!isFormValid) {
         errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
+        console.log("Form is invalid, do not submit");
         return;
+      }
+      else {
+        console.log("Form is valid, proceeding to save station");
       }
       let record = {
         id: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
