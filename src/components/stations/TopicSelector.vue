@@ -107,6 +107,9 @@
       onBeforeMount(async () => {
         let m = false;
         await fetchOptions();
+        console.log("Options: ", options.value);
+        console.log("Topics in props: ", props.modelValue);
+        
         if (props.modelValue && props.modelValue.length) {
           for (const topic of props.modelValue) {
             const option = options.value.find(option => option.topic === topic);
@@ -135,6 +138,7 @@
       });
   
       watch(() => selected.value, (newValue) => {
+        console.log("Selected value changed: ", newValue);
         if (selected.value) {
           emit("update:modelValue", newValue);
         }
