@@ -155,6 +155,26 @@ export default defineComponent({
 
     const registerStation = async () => {
       if (!formValid.value) {
+        console.log("Form validation failed. Checking individual field errors...");
+
+        // Check each validation rule and log the failing fields
+        const validationResults = {
+            name: rules.value.validName(station.value.properties.name),
+            wsi: rules.value.validWSI(station.value.properties.wigos_station_identifier),
+            longitude: rules.value.validLongitude(station.value.geometry.longitude),
+            latitude: rules.value.validLatitude(station.value.geometry.latitude),
+            elevation: rules.value.validElevation(station.value.geometry.elevation),
+            barometerHeight: rules.value.validBarometerHeight(station.value.properties.barometer_height),
+            token: rules.value.token(token.value),
+            topics: rules.value.topic(station.value.properties.topics),
+        };
+
+        for (const [field, result] of Object.entries(validationResults)) {
+            if (result !== true) {
+                console.log(`Validation failed for field "${field}": ${result}`);
+            }
+        }
+        
         errorMessage.value = "Please correct validation errors before submitting"
         showDialog.value = true;
         return;
