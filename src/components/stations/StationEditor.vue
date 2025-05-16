@@ -73,7 +73,7 @@
               hint='Enter wis2box auth token for "collections/stations"' persistent-token variant="outlined"
               class="my-5"></v-text-field>
             <v-card-actions v-if="!readonly">
-              <v-btn @click="registerStation()" elevation=2>Save</v-btn>
+              <v-btn @click="saveStation()" elevation=2>Save</v-btn>
               <v-btn @click="cancelEdit()" elevation=2>Cancel</v-btn>
             </v-card-actions>
             <v-card-actions v-else>
@@ -153,14 +153,16 @@ export default defineComponent({
       }
     };
 
-    const registerStation = async () => {
-      if (!formValid.value) {
+    const saveStation = async () => {
+      const isValid = await formRef.value.validate();
+      if (!isValid) {
         console.log("Form validation failed. Checking individual field errors...");
 
         // Check each validation rule and log the failing fields
         const validationResults = {
             name: rules.value.validName(station.value.properties.name),
             wsi: rules.value.validWSI(station.value.properties.wigos_station_identifier),
+            tsi: rules.value.validTSI(station.value.properties.traditional_station_identifier),
             longitude: rules.value.validLongitude(station.value.geometry.longitude),
             latitude: rules.value.validLatitude(station.value.geometry.latitude),
             elevation: rules.value.validElevation(station.value.geometry.elevation),
@@ -376,7 +378,7 @@ export default defineComponent({
     return {
       station,
       topics,
-      registerStation,
+      saveStation,
       showDialog,
       msg,
       rules,
