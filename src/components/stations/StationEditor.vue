@@ -155,9 +155,8 @@ export default defineComponent({
     };
 
     const saveStation = async () => {
-  
-      const isFormValid = await stationForm.value.validate();
-      if (!isFormValid) {
+      const { valid } = await stationForm.value.validate();
+      if (!valid) {
         errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
         console.log("Form is invalid, do not submit");
