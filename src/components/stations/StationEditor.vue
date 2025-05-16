@@ -12,7 +12,7 @@
     <v-card-title v-if="!readonly">{{ route.params.id ? 'Edit' : 'Create new' }} station</v-card-title>
     <v-card-title v-else>View station</v-card-title>
     <v-card v-if="station" max-width="1200px">
-      <v-form v-model="formValid" align="left">
+      <v-form ref="stationForm" v-model="formValid" align="left">
         <v-container class="pa-5">
           <v-text-field label="Station name" v-model="station.properties.name" :rules="[rules.validName]"
             :readonly="readonly || route.params.id.length > 0" hint="Enter name of station" persistent-hint
@@ -24,61 +24,63 @@
           </v-text-field>
           <v-text-field label="Traditional station identifier"
             v-model="station.properties.traditional_station_identifier" :readonly="readonly"
-            hint="Enter the traditional station identifier (ASCII or numeric characters only)" persistent-hint
+            hint="Traditional (5 or 7 digit) station identifier (required for FM-12 to BUFR conversion)" persistent-hint
             variant="outlined" class="my-5">
           </v-text-field>
-          <v-container>
+          <CodeListSelector :readonly="readonly" codeList="facilityType" label="Facility type"
+          defaultHint="Select facility type" v-model="station.properties.facility_type" class="my-5" />
+          <v-container v-if="hasGeometry">
             <v-row>
               <v-col cols="4">
                 <v-row>
                   <v-text-field label="Longitude (decimal degrees E), -180 to 180" v-model="station.geometry.longitude"
-                    :rules="[rules.validLongitude]" :readonly="readonly" type="number"
-                    hint="Enter the station longitude (degrees E)" persistent-hint variant="outlined" class="my-5" />
+                    :rules="[rules.validLongitude]" type="number" hint="Enter the station longitude (degrees E)"
+                    persistent-hint />
                 </v-row>
                 <v-row>
                   <v-text-field label="Latitude (decimal degrees N), -90 to 90" v-model="station.geometry.latitude"
-                    :rules="[rules.validLatitude]" :readonly="readonly" type="number"
-                    hint="Enter the station latitude (degrees N)" persistent-hint variant="outlined" class="my-5" />
+                    :rules="[rules.validLatitude]" type="number" hint="Enter the station latitude (degrees N)"
+                    persistent-hint />
                 </v-row>
                 <v-row>
                   <v-text-field label="Station elevation above sea level (metres)" v-model="station.geometry.elevation"
-                    :rules="[rules.validElevation]" :readonly="readonly" type="number"
-                    hint="Station elevation above sea level (metres)" persistent-hint variant="outlined" class="my-5" />
+                    :rules="[rules.validElevation]" type="number" hint="Station elevation above sea level (metres)"
+                    persistent-hint />
                 </v-row>
               </v-col>
               <v-col cols="8">
                 <LocatorMap :longitude="parseFloat(station.geometry.longitude)"
-                  :latitude="parseFloat(station.geometry.latitude)" variant="outlined" />
+                :latitude="parseFloat(station.geometry.latitude)" />
               </v-col>
             </v-row>
           </v-container>
-          <CodeListSelector :readonly="readonly" codeList="facilityType" label="Facility type"
-            defaultHint="Select facility type" v-model="station.properties.facility_type" class="my-5" />
-          <v-text-field label="Barometer height above sea level" v-model="station.properties.barometer_height"
-            :rules="[rules.validBarometerHeight]" :readonly="readonly" hint="Enter barometer height (metres)"
-            persistent-hint type="number" variant="outlined" class="my-5">
+          <v-text-field v-if="isLandStation" label="Barometer height above sea level" v-model="station.properties.barometer_height"
+          :rules="[rules.validBarometerHeight]" hint="Enter barometer height (metres)" persistent-hint type="number">
           </v-text-field>
-          <CodeListSelector :readonly="readonly" codeList="WMORegion" label="WMO Region" defaultHint="Select WMO region"
-            v-model="station.properties.wmo_region" />
-          <CodeListSelector :readonly="readonly" codeList="territory"
-            label="Territory or WMO member operating the station" defaultHint="Select territory"
-            v-model="station.properties.territory_name" />
-          <CodeListSelector :readonly="readonly" codeList="operatingStatus" label="Operating status"
-            defaultHint="Select operating status" v-model="station.properties.status" />
-          <TopicSelector v-model="station.properties.topics" multiple :readonly="readonly"
-            :rules="[rules.topic]" class="mt-2" />
-          <v-divider />
-          <v-text-field :rules="[rules.token]" type="password" autocomplete="one-time-code" clearable v-model="token"
-            label='wis2box auth token for "collections/stations"'
-            hint='Enter wis2box auth token for "collections/stations"' persistent-token variant="outlined"
-            class="my-5"></v-text-field>
-          <v-card-actions v-if="!readonly">
-            <v-btn @click="registerStation()" elevation=2 :disabled="!formValid">Save</v-btn>
-            <v-btn @click="cancelEdit()" elevation=2>Cancel</v-btn>
-          </v-card-actions>
-          <v-card-actions v-else>
-            <v-btn @click="router.push('/station/' + route.params.id + '?action=edit')" elevation=2>Edit</v-btn>
-          </v-card-actions>
+          <v-card-item></v-card-item>
+            <CodeListSelector :readonly="readonly" codeList="WMORegion" label="WMO Region" defaultHint="Select WMO region"
+              v-model="station.properties.wmo_region" />
+            <CodeListSelector :readonly="readonly" codeList="territory"
+              label="Territory or WMO member operating the station" defaultHint="Select territory"
+              v-model="station.properties.territory_name" />
+            <CodeListSelector :readonly="readonly" codeList="operatingStatus" label="Operating status"
+              defaultHint="Select operating status" v-model="station.properties.status" />
+            <TopicSelector v-model="station.properties.topics" multiple :readonly="readonly"
+              :rules="[rules.topic]" class="mt-2" />
+            <v-divider />
+            <v-text-field v-if="!readonly" :rules="[rules.token]" autocomplete="one-time-code" clearable v-model="token"
+              label='wis2box auth token for "collections/stations"'
+              :append-icon="showToken ? 'mdi-eye' : 'mdi-eye-off'" 
+              :type="showToken ? 'text' : 'password'" @click:append="showToken = !showToken"
+              hint='Enter wis2box auth token for "collections/stations"' persistent-token variant="outlined"
+              class="my-5"></v-text-field>
+            <v-card-actions v-if="!readonly">
+              <v-btn @click="saveStation()" elevation=2>Save</v-btn>
+              <v-btn @click="cancelEdit()" elevation=2>Cancel</v-btn>
+            </v-card-actions>
+            <v-card-actions v-else>
+              <v-btn @click="router.push('/station/' + route.params.id + '?action=edit')" elevation=2>Edit</v-btn>
+            </v-card-actions>
         </v-container>
       </v-form>
     </v-card>
@@ -124,16 +126,20 @@ export default defineComponent({
     const msg = ref('');
     const token = ref(null);
     const formValid = ref(null);
+    const hasGeometry = ref(null);
+    const isLandStation = ref(null);
     const selectedDataset = ref(null);
+    const stationForm = ref(null);
+    const showToken = ref(false);
 
     // Define validation rules
     const rules = ref({
       validWSI: value => /^0-[0-9]{1,5}-[0-9]{0,5}-[0-9a-zA-Z]{1,16}$/.test(value) || 'Invalid WSI',
       validTSI: value => value && value.length > 0 ? true : 'TSI must be set',
-      validLongitude: value => !(Math.abs(value) > 180 || isNaN(value)) ? true : 'Invalid longitude',
-      validLatitude: value => value && !(Math.abs(value) > 90 || isNaN(value)) ? true : 'Invalid latitude',
-      validElevation: value => value && !isNaN(value) ? true : 'Invalid elevation',
-      validBarometerHeight: value => value && !isNaN(value) ? true : 'Invalid barometer height',
+      validLongitude: value => (value && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
+      validLatitude: value => (value && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
+      validElevation: value => (value && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
+      validBarometerHeight: value => (value && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
       validName: value => value && value.length > 0 ? true : 'Name must be set',
       token: value => value && value.length > 0 ? true : 'Please enter the authorization token',
       topic: value => value.length > 0 ? true : 'Select at least one topic'
@@ -151,21 +157,16 @@ export default defineComponent({
       }
     };
 
-    const registerStation = async () => {
-      if (!formValid.value) {
-        errorMessage.value = "Please correct validation errors before submitting"
+    const saveStation = async () => {
+      const { valid } = await stationForm.value.validate();
+      if (!valid) {
+        errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
         return;
       }
       let record = {
         id: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [parseFloat(station.value.geometry.longitude),
-          parseFloat(station.value.geometry.latitude),
-          parseFloat(station.value.geometry.elevation)]
-        },
         properties: {
           name: stripHTMLTags(station.value.properties.name),
           wigos_station_identifier: stripHTMLTags(station.value.properties.wigos_station_identifier),  // WSI
@@ -181,6 +182,21 @@ export default defineComponent({
           id: stripHTMLTags(station.value.properties.wigos_station_identifier)  // WSI
         }
       }
+
+      // if facility_type is contains the string Fixed add geometry to record
+      if (station.value.properties.facility_type['skos:notation'] &&
+        station.value.properties.facility_type['skos:notation'].includes('Fixed')) {
+        record.geometry = {
+          type: 'Point',
+          coordinates: [parseFloat(station.value.geometry.longitude),
+          parseFloat(station.value.geometry.latitude),
+          parseFloat(station.value.geometry.elevation)]
+        }
+      }
+      else {
+        record.geometry = null;
+      }
+
       let apiURL = `${import.meta.env.VITE_API_URL}/collections/stations/items`;
       let leaf = route.params.id ? "/" + route.params.id : "";
       apiURL = apiURL + leaf;
@@ -194,7 +210,6 @@ export default defineComponent({
         body: JSON.stringify(record)
       });
       if (!response.ok) {
-        console.log(record);
         if (response.status == 401) {
           errorMessage.value = "Unauthorized, please provide a valid 'collections/stations' token"
         }
@@ -273,13 +288,6 @@ export default defineComponent({
           station.value = {
             id: data.id,  // WSI
             type: data.type,
-            geometry: {
-              type: data.geometry.type,
-              coordinates: data.geometry.coordinates,
-              longitude: data.geometry.coordinates[0],
-              latitude: data.geometry.coordinates[1],
-              elevation: data.geometry.coordinates[2]
-            },
             properties: {
               name: data.properties.name,
               wigos_station_identifier: data.properties.wigos_station_identifier,  // WSI
@@ -293,6 +301,24 @@ export default defineComponent({
               status: data.properties.status,
               id: data.properties.id  // WSI
             }
+          };
+          // if geometry is not null, set geometry
+          if (data.geometry) {
+            station.value.geometry = {
+              type: data.geometry.type,
+              coordinates: data.geometry.coordinates,
+              longitude: data.geometry.coordinates[0],
+              latitude: data.geometry.coordinates[1],
+              elevation: data.geometry.coordinates[2]
+            };
+          } else {
+            station.value.geometry = {
+              type: 'Point',
+              coordinates: [null, null, null],
+              longitude: null,
+              latitude: null,
+              elevation: null
+            };
           };
         }
       }
@@ -312,10 +338,26 @@ export default defineComponent({
       }
     })
 
+    watch(() => station.value?.properties?.facility_type, (newValue) => {
+      let facilityType = newValue?.['skos:notation'] || null;
+      // check if facilityType ends with 'Fixed'
+      if (facilityType && facilityType.endsWith('Fixed')) {
+        hasGeometry.value = true;
+        if (facilityType.includes('landFixed')) {
+          isLandStation.value = true;
+        } else {
+          isLandStation.value = false;
+        }
+      } else {
+        hasGeometry.value = false;
+        isLandStation.value = false;
+      }
+    })
+
     return {
       station,
       topics,
-      registerStation,
+      saveStation,
       showDialog,
       msg,
       rules,
@@ -325,7 +367,11 @@ export default defineComponent({
       errorMessage,
       token,
       formValid,
+      stationForm,
+      showToken,
       cancelEdit,
+      hasGeometry,
+      isLandStation,
       selectedDataset
     };
   }
