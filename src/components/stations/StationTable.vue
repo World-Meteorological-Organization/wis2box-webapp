@@ -82,7 +82,6 @@ export default defineComponent({
             throw new Error(`HTTP error! Status: ${response.status}`);
           }else{
             let featureCollection = await response.json();
-            console.log("featureCollection", featureCollection);
             items.value = featureCollection.features.map( (feature) => {
               return{
                 actions: "actions",
