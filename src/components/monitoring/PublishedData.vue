@@ -33,6 +33,8 @@
             <v-col cols="3">
               <InspectBufrButton v-if="file.type === 'application/bufr'" :fileName="getFileName(file.url)"
                 :fileUrl="file.url" :block="true" />
+              <InspectBufrButton_TEMP v-else-if="file.type === 'application/bufr' && file.url.includes('/temp/')"
+                :fileUrl="file.url" :block="true" />
               <InspectAlertButton v-if="fileIsCAP(file)" :fileUrl="file.url" :fileName="getFileName(file.url)" :block="true" />
             </v-col>
           </v-row>
@@ -48,6 +50,7 @@ import { defineComponent, ref, computed } from 'vue';
 import { VCard, VCardTitle } from 'vuetify/lib/components/index.mjs';
 import DownloadButton from '@/components/DownloadButton.vue';
 import InspectBufrButton from '@/components/InspectBufrButton.vue';
+import InspectBufrButton_TEMP from '@/components/InspectBufrButton_TEMP.vue';
 import InspectAlertButton from '@/components/monitoring/InspectAlertButton.vue';
 
 export default defineComponent({
