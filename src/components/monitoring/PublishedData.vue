@@ -31,11 +31,11 @@
             </v-col>
 
             <v-col cols="3">
-              <InspectBufrButton v-if="file.type === 'application/bufr'" :fileName="getFileName(file.url)"
+              <InspectBufrButton_TEMP v-if="file.type === 'application/bufr' && file.url.includes('temp/')"
+              :fileUrl="file.url" :block="true" />
+              <InspectBufrButton v-else-if="file.type === 'application/bufr'" :fileName="getFileName(file.url)"
                 :fileUrl="file.url" :block="true" />
-              <InspectBufrButton_TEMP v-else-if="file.type === 'application/bufr' && file.url.includes('/temp/')"
-                :fileUrl="file.url" :block="true" />
-              <InspectAlertButton v-if="fileIsCAP(file)" :fileUrl="file.url" :fileName="getFileName(file.url)" :block="true" />
+              <InspectAlertButton v-else-if="fileIsCAP(file)" :fileUrl="file.url" :fileName="getFileName(file.url)" :block="true" />
             </v-col>
           </v-row>
         </v-list>
