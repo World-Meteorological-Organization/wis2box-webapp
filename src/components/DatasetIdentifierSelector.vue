@@ -97,7 +97,8 @@ export default defineComponent({
                       "id": feature.properties.identifier,
                       "topic": feature.properties['wmo:topicHierarchy']
                     },
-                    description: feature.properties['description']
+                    description: feature.properties['description'],
+                    mappings: feature.wis2box?.data_mappings.plugins || [],
                   }
                 }
               }

@@ -11,6 +11,12 @@ const routes = [
         component: () => import('@/views/Home.vue'),
       },
       {
+        path: 'file2bufr',
+        name: 'FileToBUFRForm',
+        component: () => import('@/views/FileToBUFRForm.vue'),
+        meta: {title: 'wis2box - Data File to BUFR Form'}
+      },
+      {
         path: 'synop2bufr',
         name: 'SynopForm',
         component: () => import('@/views/SynopForm.vue'),
