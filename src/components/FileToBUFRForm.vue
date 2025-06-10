@@ -40,7 +40,7 @@
                         <v-card width="100%">
                             <v-card-title>Load data</v-card-title>
                             <v-card-text>
-                                <v-file-input label="Select file to upload" v-model="incomingFile" variant="outlined"/>
+                                <v-file-input :rules="fileInputRules" label="Select file to upload" show-size v-model="incomingFile" variant="outlined"/>
                             </v-card-text>
                         </v-card>
                     </v-stepper-window-item>
@@ -97,6 +97,7 @@
                             <v-col cols="12">
                                 <DatasetIdentifierSelector :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue"/>
                             </v-col>
+                            <v-checkbox v-model="dontUseDatasetMappings" label="Use Dataset Mappings" color="#" hide-details></v-checkbox>
                         </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="3">
@@ -110,6 +111,8 @@
                               variant="outlined">
                             </v-text-field>
                             </v-card-text>
+                            <VueDatePicker v-if="dontUseDatasetMappings" placeholder="Date in UTC" v-model="model.extents.dateStarted"
+                                :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm:ss" auto-apply required />
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
@@ -252,6 +255,7 @@
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import * as d3 from 'd3';
+import { use } from 'vue/types/umd';
     export default defineComponent({
         name: 'FiletoBUFRForm',
         components: {
@@ -261,6 +265,7 @@
             VStepperActions, VDialog, InspectBufrButton, DownloadButton,
             DatasetIdentifierSelector
         },
+
         setup() {
             // reactive variables
             const theData = ref(null);
@@ -272,6 +277,7 @@
             // const validationErrors = ref([]);
             const status = ref({
                 fileLoaded: false,
+                fileSized:false,
                 fileValidated: false,
                 datasetIdentifier: false,
                 password: false
@@ -287,8 +293,10 @@
             const scrollRef = ref(null);
             const result = ref(null);
             const notificationsOnPending = ref(false);
-
+            const dontUseDatasetMappings = ref(false);
             // computed properties
+
+            
 
             const step1Color = computed(() => {
                 if (status.value.fileLoaded) {
@@ -535,8 +543,13 @@
                 switch (step.value){
                   case 0:
                     if( status.value.fileLoaded){
+                      if( !status.value.fileSized ){
+                        showDialog.value = true;
+                        msg.value = "File size must be less than 1MB";
+                      }
+                      else{
                       proceed = true;
-                      loadData()
+                      loadData()}
                     }else{
                       showDialog.value = true;
                       msg.value = "Please select or drag and drop a file to upload";
@@ -563,10 +576,10 @@
                   case 2:
                     if( status.value.password ){
                       let filetype = incomingFile.value.name.split('.').pop();
-                      
+                      let keys="";
                       for ( let map in datasetSelected.value.mappings ){
-                        let keys="";
                         
+                        keys += map + ", ";
                         if(map === filetype)
                       {
                           
@@ -576,9 +589,12 @@
                           submit();
                           proceed = true;
                         }
-
                       }
-                      }    
+                      if( !proceed ){
+                        showDialog.value = true;
+                        msg.value = "No mapping found for file type " + filetype + " in the following keys: " + keys.slice(0, -2);
+                      }
+                    }    
                     else{
                       showDialog.value = true;
                       msg.value = "Please enter the authorization token before proceeding";
@@ -597,6 +613,7 @@
 
             watch( incomingFile, (val) => {
               status.value.fileLoaded = !!val;
+              status.value.fileSized = val.size < 1024*1024;
             });
 
             // watch( validationErrors, (val) => {
@@ -616,7 +633,7 @@
             });
 
             return {theData, headers, incomingFile, loadData, step, prev, next, scrollToRef,
-                     status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
+                     status, showToken, token, notificationsOnPending, dontUseDatasetMappings, step1Color, step2Color, step3Color, step4Complete, step4Color,
                     datasetSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
