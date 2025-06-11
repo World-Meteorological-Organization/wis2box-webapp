@@ -9,7 +9,6 @@ services:
       - test.env
 
   web-proxy:
-    container_name: nginx
     image: nginx:alpine
     restart: always
     env_file:
