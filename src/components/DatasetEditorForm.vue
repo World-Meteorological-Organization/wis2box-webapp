@@ -164,6 +164,18 @@
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                     </v-row>
+                    <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">
+                        <v-col cols="6">
+                            <v-text-field 
+                                label="Link-to-data-license" 
+                                type="url" 
+                                v-model="model.license_link" 
+                                :rules="[rules.url]" 
+                                variant="outlined" 
+                                clearable>
+                            </v-text-field>
+                        </v-col>
+                    </v-row>
                     <v-row>
                         <!-- toggle between selection sub-discipline topics and free-text input -->
                         <v-col cols="8" v-if="!model.identification.isExperimental">
@@ -1019,6 +1031,7 @@ export default defineComponent({
             host: {},
             plugins: [],
             links: []
+            license_link: `${import.meta.env.VITE_BASE_URL}/data/license.txt`
         };
 
         // Time durations for resolution
@@ -1144,7 +1157,7 @@ export default defineComponent({
         const previousLinkTitle = ref(null);
         const previousLinkURL = ref(null);
         // Metadata form to be filled
-        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] });
+        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
         // Execution token to be entered by user
         const token = ref(null);
         // Variable to control whether token is seen or not
@@ -1496,8 +1509,16 @@ export default defineComponent({
                 extents: {},
                 host: {},
                 settings: {},
-                links: []
+                links: [],
+                license_link: defaults.license_link
             };
+
+            // loop over links in the schema and when rel='license' set the license_link
+            schema.links.forEach(link => {
+                if (link.rel === 'license') {
+                    formModel.license_link = link.href;
+                }
+            });
 
             // Retrieve the identifier from the schema
             formModel.identification.identifier = schema.id;
@@ -2342,6 +2363,16 @@ export default defineComponent({
                 link.rel = "data";
             });
             schemaModel.links = form.links;
+
+            schemaModel.links = [];
+
+            // add license_link to to schemaModel.links if data-policy is 'recommended'
+            if (form.identification.wmoDataPolicy === 'recommended') {     
+                schemaModel.links.push({
+                    rel: "license",
+                    href: form.license_link
+                });
+            }
 
             return schemaModel;
         };
