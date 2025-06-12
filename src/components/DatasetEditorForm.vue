@@ -1379,10 +1379,19 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             let fullTopic = schema.properties['wmo:topicHierarchy'];
             formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+            
             // subTopic1 is the 7th-level
             formModel.identification.subTopic1 = fullTopic.split('/')[6];
-            // subTopic2 is the everything after the 7th level
-            formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/'); 
+            // subTopic2 is the everything after the 7th level unless it starts with experimental
+            if (fullTopic.split('/')[7] === 'experimental') {
+                formModel.identification.isExperimental = true;
+                // subTopic2 is everything after experimental
+                formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
+            }
+            else {
+                formModel.identification.isExperimental = false;
+                formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/');
+            }
 
             // Time period information
             if (schema.time?.interval) {
