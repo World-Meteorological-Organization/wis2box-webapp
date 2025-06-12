@@ -167,6 +167,7 @@
                     <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">
                         <v-col cols="6">
                             <v-text-field 
+                                ref="licenseLink"
                                 label="Link-to-data-license" 
                                 type="url" 
                                 v-model="model.license_link" 
