@@ -165,6 +165,7 @@
                     <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">
                         <v-col cols="6">
                             <v-text-field 
+                                ref="licenseLink"
                                 label="Link-to-data-license" 
                                 type="url" 
                                 v-model="model.license_link" 
@@ -2098,7 +2099,11 @@ export default defineComponent({
             const { valid } = await formRef.value.validate();
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value);
-
+            if (!isFormValid) {
+                // If the form is not valid, print the form to the console for debugging
+                console.log(formRef.value);
+            }
+            
             message.value = isFormValid
                 ? "Form is valid, please proceed."
                 : "Form is invalid, please check all of the fields are filled correctly and try again.";
