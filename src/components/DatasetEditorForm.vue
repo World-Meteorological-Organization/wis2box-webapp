@@ -919,7 +919,7 @@ export default defineComponent({
             centreID: value => /^[a-z0-9_-]{2,}$/.test(value) || 'Invalid centre ID. Must be lowercase with at least 2 characters',
             latitude: value => value >= -90 && value <= 90 || 'Latitude must be between -90 and 90',
             longitude: value => value >= -180 && value <= 180 || 'Longitude must be between -180 and 180',
-            url: value => value === '' || /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)$/.test(value) || 'Invalid URL format',
+            url: value => value === '' || /^(https?:\/\/)((\d{1,3}\.){3}\d{1,3}|[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,})(:\d{1,5})?(\/[-a-zA-Z0-9@:%_+.~#?&//=]*)?$/.test(value) || 'Invalid URL format',
             email: value => /^[a-z0-9._-]+@[a-z0-9-]+\.[a-z0-9.-]+$/.test(value) || 'Invalid email format',
             keywords: value => model.value.identification.keywords?.length >= 3 || 'There must be at least 3 keywords',
             token: value => !!value || 'Token is required',
