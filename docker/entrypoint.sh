@@ -42,7 +42,7 @@ fi
 
 set +e
 # run generate-topic-list.sh
-docker/generate-topic-list.sh /wis2box-webapp/public/wth || echo "Topic list generation failed, continuing..."
+docker/generate-topic-list.sh /wis2box-webapp/public/other || echo "Topic list generation failed, continuing..."
 set -e
 
 npm run build
