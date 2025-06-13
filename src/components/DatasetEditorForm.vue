@@ -537,7 +537,8 @@
                         <p><b>WMO Data Policy:</b> Classification code of core or recommended based on the WMO
                             Unified
                             Data
-                            Policy.</p>
+                            Policy.
+                        </p>
                         <br>
                         <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
                         <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
@@ -557,6 +558,13 @@
                             resource, but are not referenced to a particular vocabulary or knowledge
                             organization
                             system.
+                        </p>
+                        <br>
+                        <p><b>License:</b>
+                            <i>If you select 'recommended' as WMO Data Policy, you will be required to provide a license link.</i>
+                            For new datasets, Creative Commons licenses offer standardized, widely-recognized terms that clearly communicate usage rights to others.
+                            Visit the Creative Commons website to explore license options that match your sharing preferences.
+                            Choose 'custom license' if you want to provide your own license link.
                         </p>
                         <br>
                     </v-card-text>
@@ -2449,12 +2457,9 @@ export default defineComponent({
             updateTopicHierarchy();
         });
 
-        watch()(() => model.value.identification.isCustomLicense, () => {
+        watch(() => model.value.identification.isCustomLicense, (newValue, oldValue) => {
             // If the user changes the isCustomLicense, set the licenseLink to null
-            console.log("isCustomLicense changed to: ", model.value.identification.isCustomLicense);
-            console.log("Setting licenseLink to null");
             model.value.identification.licenseLink = null;
-            console.log("licenseLink is now: ", model.value.identification.licenseLink);
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
