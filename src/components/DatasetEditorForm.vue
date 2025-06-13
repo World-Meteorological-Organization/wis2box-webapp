@@ -162,17 +162,32 @@
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                     </v-row>
-                    <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">
-                        <v-col cols="6">
+                    <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">           
+                        <v-col cols="8" v-if="model.identification.isCustomLicense">
                             <v-text-field 
-                                ref="licenseLink"
-                                label="Link-to-data-license" 
+                                label="License (provide valid URL)" 
                                 type="url" 
-                                v-model="model.license_link" 
+                                v-model="model.identification.licenseLink" 
                                 :rules="[rules.url]" 
                                 variant="outlined" 
                                 clearable>
                             </v-text-field>
+                        </v-col>
+                        <v-col cols="8" v-else>
+                            <v-select 
+                                label="License (choose one)" 
+                                :items="license_options"
+                                item-title="label" 
+                                item-value="value"
+                                v-model="model.identification.licenseLink"
+                                :rules="[rules.required]"
+                                variant="outlined">
+                            </v-select>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-checkbox v-model="model.identification.isCustomLicense" 
+                            label="custom license (provide your own link)"
+                            variant="outlined" ></v-checkbox>
                         </v-col>
                     </v-row>
                     <v-row>
@@ -890,15 +905,16 @@ export default defineComponent({
                 subTopic1: 'weather',
                 subTopic2: null,
                 concepts: ['weather'],
-                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline'
+                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline',
+                licenseLink: null,
+                isCustomLicense: false
             },
             extents: {
                 // Default to the current date
                 dateStarted: new Date().toISOString(),
             },
             host: {},
-            plugins: [],
-            license_link: `${import.meta.env.VITE_BASE_URL}/data/license.txt`
+            plugins: []
         };
 
         // Time durations for resolution
@@ -973,6 +989,8 @@ export default defineComponent({
         const subTopics = ref([]);
         // list of valid sub-topics2
         const subTopics2 = ref([]);
+        // list of valid license_options
+        const license_options = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
@@ -1011,7 +1029,7 @@ export default defineComponent({
         const previousPluginBuckets = ref(null);
         const previousPluginFilePattern = ref(null);
         // Metadata form to be filled
-        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [] , 'license_link': defaults.license_link });
+        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [] });
         // Execution token to be entered by user
         const token = ref(null);
         // Variable to control whether token is seen or not
@@ -1255,7 +1273,7 @@ export default defineComponent({
         const loadTopics = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/wth/topics-dropdown-list.csv`);
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/topics-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
@@ -1269,6 +1287,30 @@ export default defineComponent({
                 console.error(error);
                 // Display error message to the user
                 message.value = 'Error loading topics list.';
+            }
+        };
+
+        // Fetches a list of licences
+        const loadLicenseOptions = async () => {
+            try {
+                // Get list of topics from the CSV file available within the current website
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/licenses-dropdown-list.csv`);
+                if (!response.ok) {
+                    throw new Error('Network response was not okay, failed to load topics list.');
+                }
+                // Get CSV response and parse it into an object
+                const responseData = await response.text();
+                const parsed = Papa.parse(responseData, { header: true });
+                license_options.value = parsed.data.map(item => {
+                    return {
+                        label: `${item.link} (${item.description})`, 
+                        value: item.link
+                    };
+                });
+            } catch (error) {
+                console.error(error);
+                // Display error message to the user
+                message.value = 'Error loading licenses list.';
             }
         };
 
@@ -1358,16 +1400,27 @@ export default defineComponent({
                 identification: {},
                 extents: {},
                 host: {},
-                settings: {},
-                license_link: defaults.license_link
+                settings: {}
             };
 
-            // loop over links in the schema and when rel='license' set the license_link
+            let license_link = null;
+            // loop over links in the schema and when rel='license' set the licenseLink
             schema.links.forEach(link => {
                 if (link.rel === 'license') {
-                    formModel.license_link = link.href;
+                    license_link = link.href;
                 }
             });
+            // check if the link is license_options, if not it is a customLicense
+            let is_custom_license = true;
+            for (const option of license_options.value) {
+                if (license_link === option.value) {
+                    is_custom_license = false;
+                    return;
+                }
+            }
+            // Set the license link and whether it is a custom license
+            formModel.identification.isCustomLicense = is_custom_license;
+            formModel.identification.licenseLink = license_link;
 
             // Retrieve the identifier from the schema
             formModel.identification.identifier = schema.id;
@@ -2092,11 +2145,13 @@ export default defineComponent({
 
             schemaModel.links = [];
 
-            // add license_link to to schemaModel.links if data-policy is 'recommended'
+            // add user-provided licenseLink to to schemaModel.links if data-policy is 'recommended'
             if (form.identification.wmoDataPolicy === 'recommended') {     
                 schemaModel.links.push({
                     rel: "license",
-                    href: form.license_link
+                    href: form.identification.licenseLink,
+                    title: "License for this dataset",
+                    type: "text/html"
                 });
             }
 
@@ -2366,6 +2421,7 @@ export default defineComponent({
             loadPluginLists();
             loadMappings();
             loadCodes();
+            loadLicenseOptions();
         });
 
         // Watched
@@ -2391,6 +2447,14 @@ export default defineComponent({
             // If the user changes the isExperimental value set subTopic2 to null
             model.value.identification.subTopic2 = null;
             updateTopicHierarchy();
+        });
+
+        watch()(() => model.value.identification.isCustomLicense, () => {
+            // If the user changes the isCustomLicense, set the licenseLink to null
+            console.log("isCustomLicense changed to: ", model.value.identification.isCustomLicense);
+            console.log("Setting licenseLink to null");
+            model.value.identification.licenseLink = null;
+            console.log("licenseLink is now: ", model.value.identification.licenseLink);
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
@@ -2445,6 +2509,7 @@ export default defineComponent({
             earthSystemDisciplines,
             subTopics,
             subTopics2,
+            license_options,
             durations,
             pluginList,
             templateList,
