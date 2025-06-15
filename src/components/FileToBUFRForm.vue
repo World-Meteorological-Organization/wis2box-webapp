@@ -97,7 +97,7 @@
                             <v-col cols="12">
                                 <DatasetIdentifierSelector :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue"/>
                             </v-col>
-                            <v-checkbox v-model="dontUseDatasetMappings" label="Use Dataset Mappings" color="#" hide-details></v-checkbox>
+                            <v-checkbox v-model="status.datasetPlugin" label="Use dataset plugins" color="#" hide-details></v-checkbox>
                         </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="3">
@@ -111,8 +111,8 @@
                               variant="outlined">
                             </v-text-field>
                             </v-card-text>
-                            <VueDatePicker v-if="dontUseDatasetMappings" placeholder="Date in UTC" v-model="model.extents.dateStarted"
-                                :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm:ss" auto-apply required />
+                            <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
+                                :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm" auto-apply/>
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
@@ -255,7 +255,6 @@
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import * as d3 from 'd3';
-import { use } from 'vue/types/umd';
     export default defineComponent({
         name: 'FiletoBUFRForm',
         components: {
@@ -278,6 +277,7 @@ import { use } from 'vue/types/umd';
             const status = ref({
                 fileLoaded: false,
                 fileSized:false,
+                datasetPlugin: true,
                 fileValidated: false,
                 datasetIdentifier: false,
                 password: false
@@ -288,12 +288,13 @@ import { use } from 'vue/types/umd';
             const datasetSelected = ref(null);
             const rawData = ref(null);
             const plugin = ref(null);
+            const date = ref(null);
             const msg = ref(null);
             const showDialog = ref(null);
             const scrollRef = ref(null);
             const result = ref(null);
             const notificationsOnPending = ref(false);
-            const dontUseDatasetMappings = ref(false);
+
             // computed properties
 
             
@@ -632,8 +633,8 @@ import { use } from 'vue/types/umd';
               }
             });
 
-            return {theData, headers, incomingFile, loadData, step, prev, next, scrollToRef,
-                     status, showToken, token, notificationsOnPending, dontUseDatasetMappings, step1Color, step2Color, step3Color, step4Complete, step4Color,
+            return {theData, headers, incomingFile, date, loadData, step, prev, next, scrollToRef,
+                     status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
                     datasetSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
