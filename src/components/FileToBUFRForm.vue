@@ -111,6 +111,7 @@
                               variant="outlined">
                             </v-text-field>
                             </v-card-text>
+                            <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue"/>
                             <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
                                 :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm" auto-apply/>
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
@@ -255,6 +256,7 @@
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import * as d3 from 'd3';
+    import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
     export default defineComponent({
         name: 'FiletoBUFRForm',
         components: {
@@ -262,7 +264,7 @@
             VChip, VTooltip, VListItem, VList, VContainer,
             VCardTitle, VIcon, VStepper, VStepperHeader, VStepperItem, VStepperWindow, VStepperWindowItem,
             VStepperActions, VDialog, InspectBufrButton, DownloadButton,
-            DatasetIdentifierSelector
+            DatasetIdentifierSelector, StationIdentifierSelector
         },
 
         setup() {
@@ -280,12 +282,14 @@
                 datasetPlugin: true,
                 fileValidated: false,
                 datasetIdentifier: false,
+                stationIdentifier: false,
                 password: false
             });
             // Variable to control whether token is seen or not
             const showToken = ref(false);
             const token = ref(null);
             const datasetSelected = ref(null);
+            const stationSelected = ref(null);
             const rawData = ref(null);
             const plugin = ref(null);
             const date = ref(null);
@@ -612,6 +616,10 @@
               status.value.datasetIdentifier = !!val;
             });
 
+            watch( stationSelected, (val) => {
+              status.value.stationIdentifier = !!val;
+            });
+
             watch( incomingFile, (val) => {
               status.value.fileLoaded = !!val;
               status.value.fileSized = val.size < 1024*1024;
@@ -635,7 +643,7 @@
 
             return {theData, headers, incomingFile, date, loadData, step, prev, next, scrollToRef,
                      status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
-                    datasetSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
+                    datasetSelected, stationSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
 </script>
