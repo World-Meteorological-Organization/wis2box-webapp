@@ -162,6 +162,34 @@
                                 variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-select>
                         </v-col>
                     </v-row>
+                    <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">           
+                        <v-col cols="8" v-if="model.identification.isCustomLicense">
+                            <v-text-field 
+                                label="License (provide valid URL)" 
+                                type="url" 
+                                v-model="model.identification.licenseLink" 
+                                :rules="[rules.url]" 
+                                variant="outlined" 
+                                clearable>
+                            </v-text-field>
+                        </v-col>
+                        <v-col cols="8" v-else>
+                            <v-select 
+                                label="License (choose one)" 
+                                :items="license_options"
+                                item-title="label" 
+                                item-value="value"
+                                v-model="model.identification.licenseLink"
+                                :rules="[rules.required]"
+                                variant="outlined">
+                            </v-select>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-checkbox v-model="model.identification.isCustomLicense" 
+                            label="custom license (provide your own link)"
+                            variant="outlined" :disabled="true" :value="true"></v-checkbox>
+                        </v-col>
+                    </v-row>
                     <v-row>
                         <!-- toggle between selection sub-discipline topics and free-text input -->
                         <v-col cols="8" v-if="!model.identification.isExperimental">
@@ -509,7 +537,8 @@
                         <p><b>WMO Data Policy:</b> Classification code of core or recommended based on the WMO
                             Unified
                             Data
-                            Policy.</p>
+                            Policy.
+                        </p>
                         <br>
                         <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
                         <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
@@ -529,6 +558,13 @@
                             resource, but are not referenced to a particular vocabulary or knowledge
                             organization
                             system.
+                        </p>
+                        <br>
+                        <p><b>License:</b>
+                            <i>If you select 'recommended' as WMO Data Policy, you will be required to provide a license link.</i>
+                            For new datasets, Creative Commons licenses offer standardized, widely-recognized terms that clearly communicate usage rights to others.
+                            Visit the Creative Commons website to explore license options that match your sharing preferences.
+                            Choose 'custom license' if you want to provide your own license link.
                         </p>
                         <br>
                     </v-card-text>
@@ -877,7 +913,9 @@ export default defineComponent({
                 subTopic1: 'weather',
                 subTopic2: null,
                 concepts: ['weather'],
-                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline'
+                conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline',
+                licenseLink: null,
+                isCustomLicense: true
             },
             extents: {
                 // Default to the current date
@@ -906,7 +944,7 @@ export default defineComponent({
             centreID: value => /^[a-z0-9_-]{2,}$/.test(value) || 'Invalid centre ID. Must be lowercase with at least 2 characters',
             latitude: value => value >= -90 && value <= 90 || 'Latitude must be between -90 and 90',
             longitude: value => value >= -180 && value <= 180 || 'Longitude must be between -180 and 180',
-            url: value => value === '' || /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)$/.test(value) || 'Invalid URL format',
+            url: value => value === '' || /^(https?:\/\/)((\d{1,3}\.){3}\d{1,3}|[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,})(:\d{1,5})?(\/[-a-zA-Z0-9@:%_+.~#?&//=]*)?$/.test(value) || 'Invalid URL format',
             email: value => /^[a-z0-9._-]+@[a-z0-9-]+\.[a-z0-9.-]+$/.test(value) || 'Invalid email format',
             keywords: value => model.value.identification.keywords?.length >= 3 || 'There must be at least 3 keywords',
             token: value => !!value || 'Token is required',
@@ -959,6 +997,8 @@ export default defineComponent({
         const subTopics = ref([]);
         // list of valid sub-topics2
         const subTopics2 = ref([]);
+        // list of valid license_options
+        const license_options = ref([]);
         // Object of country alpha-2 codes with bounding boxes
         const boundingBoxes = ref({});
         // Whether or not the metadata is new or existing
@@ -1241,7 +1281,7 @@ export default defineComponent({
         const loadTopics = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/wth/topics-dropdown-list.csv`);
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/topics-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
@@ -1255,6 +1295,30 @@ export default defineComponent({
                 console.error(error);
                 // Display error message to the user
                 message.value = 'Error loading topics list.';
+            }
+        };
+
+        // Fetches a list of licences
+        const loadLicenseOptions = async () => {
+            try {
+                // Get list of topics from the CSV file available within the current website
+                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/licenses-dropdown-list.csv`);
+                if (!response.ok) {
+                    throw new Error('Network response was not okay, failed to load topics list.');
+                }
+                // Get CSV response and parse it into an object
+                const responseData = await response.text();
+                const parsed = Papa.parse(responseData, { header: true });
+                license_options.value = parsed.data.map(item => {
+                    return {
+                        label: `${item.link} (${item.description})`, 
+                        value: item.link
+                    };
+                });
+            } catch (error) {
+                console.error(error);
+                // Display error message to the user
+                message.value = 'Error loading licenses list.';
             }
         };
 
@@ -1347,6 +1411,25 @@ export default defineComponent({
                 settings: {}
             };
 
+            let license_link = null;
+            // loop over links in the schema and when rel='license' set the licenseLink
+            schema.links.forEach(link => {
+                if (link.rel === 'license') {
+                    license_link = link.href;
+                }
+            });
+            // check if the link is license_options, if not it is a customLicense
+            let is_custom_license = true;
+            for (const option of license_options.value) {
+                if (license_link === option.value) {
+                    is_custom_license = false;
+                    return;
+                }
+            }
+            // Set the license link and whether it is a custom license
+            formModel.identification.isCustomLicense = is_custom_license;
+            formModel.identification.licenseLink = license_link;
+
             // Retrieve the identifier from the schema
             formModel.identification.identifier = schema.id;
 
@@ -1357,10 +1440,19 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             let fullTopic = schema.properties['wmo:topicHierarchy'];
             formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+            
             // subTopic1 is the 7th-level
             formModel.identification.subTopic1 = fullTopic.split('/')[6];
-            // subTopic2 is the everything after the 7th level
-            formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/'); 
+            // subTopic2 is the everything after the 7th level unless it starts with experimental
+            if (fullTopic.split('/')[7] === 'experimental') {
+                formModel.identification.isExperimental = true;
+                // subTopic2 is everything after experimental
+                formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
+            }
+            else {
+                formModel.identification.isExperimental = false;
+                formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/');
+            }
 
             // Time period information
             if (schema.time?.interval) {
@@ -2059,6 +2151,18 @@ export default defineComponent({
             schemaModel.properties["wmo:topicHierarchy"] = form.identification.topicHierarchy;
             schemaModel.properties.id = form.identification.identifier;
 
+            schemaModel.links = [];
+
+            // add user-provided licenseLink to to schemaModel.links if data-policy is 'recommended'
+            if (form.identification.wmoDataPolicy === 'recommended') {     
+                schemaModel.links.push({
+                    rel: "license",
+                    href: form.identification.licenseLink,
+                    title: "License for this dataset",
+                    type: "text/html"
+                });
+            }
+
             return schemaModel;
         };
 
@@ -2067,7 +2171,7 @@ export default defineComponent({
             const { valid } = await formRef.value.validate();
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value);
-
+            
             message.value = isFormValid
                 ? "Form is valid, please proceed."
                 : "Form is invalid, please check all of the fields are filled correctly and try again.";
@@ -2321,6 +2425,7 @@ export default defineComponent({
             loadPluginLists();
             loadMappings();
             loadCodes();
+            loadLicenseOptions();
         });
 
         // Watched
@@ -2344,8 +2449,17 @@ export default defineComponent({
 
         watch(() => model.value.identification.isExperimental, () => {
             // If the user changes the isExperimental value set subTopic2 to null
-            model.value.identification.subTopic2 = null;
-            updateTopicHierarchy();
+            if (isNew.value) {
+                model.value.identification.subTopic2 = null;
+                updateTopicHierarchy();
+            }
+        });
+
+        watch(() => model.value.identification.isCustomLicense, (newValue, oldValue) => {
+            // If the user changes the isCustomLicense, set the licenseLink to null
+            if (isNew.value) {
+                model.value.identification.licenseLink = null;
+            }
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
@@ -2400,6 +2514,7 @@ export default defineComponent({
             earthSystemDisciplines,
             subTopics,
             subTopics2,
+            license_options,
             durations,
             pluginList,
             templateList,
