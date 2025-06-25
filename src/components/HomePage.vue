@@ -27,10 +27,12 @@ const errorMessage = ref(null);
 
 // check if current URL starts with VITE_BASE_URL
 const baseUrl = import.meta.env.VITE_BASE_URL || '';
-if (window.location.pathname.startsWith(baseUrl)) {
+if (window.location.href.startsWith(baseUrl)) {
     // If it does do not show the error message
     errorMessage.value = null;
 } else {
+    console.log(window.location.href);
+    console.log(baseUrl);
     // If it does not show the error message
     errorMessage.value = `Please access the web application via the base URL: ${baseUrl} to avoid CORS issues.`;
     console.error(errorMessage.value);
