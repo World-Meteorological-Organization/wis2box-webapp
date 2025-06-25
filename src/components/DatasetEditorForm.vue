@@ -187,7 +187,7 @@
                         <v-col cols="4">
                             <v-checkbox v-model="model.identification.isCustomLicense" 
                             label="custom license (provide your own link)"
-                            variant="outlined" ></v-checkbox>
+                            variant="outlined" :disabled="true" :value="true"></v-checkbox>
                         </v-col>
                     </v-row>
                     <v-row>
