@@ -1047,7 +1047,7 @@ export default defineComponent({
                 concepts: ['weather'],
                 conceptScheme: 'https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline',
                 licenseLink: null,
-                isCustomLicense: false
+                isCustomLicense: true
             },
             extents: {
                 // Default to the current date
