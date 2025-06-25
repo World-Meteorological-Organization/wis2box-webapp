@@ -2171,10 +2171,6 @@ export default defineComponent({
             const { valid } = await formRef.value.validate();
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value);
-            if (!isFormValid) {
-                // If the form is not valid, print the form to the console for debugging
-                console.log(formRef.value);
-            }
             
             message.value = isFormValid
                 ? "Form is valid, please proceed."
@@ -2453,13 +2449,17 @@ export default defineComponent({
 
         watch(() => model.value.identification.isExperimental, () => {
             // If the user changes the isExperimental value set subTopic2 to null
-            model.value.identification.subTopic2 = null;
-            updateTopicHierarchy();
+            if (isNew.value) {
+                model.value.identification.subTopic2 = null;
+                updateTopicHierarchy();
+            }
         });
 
         watch(() => model.value.identification.isCustomLicense, (newValue, oldValue) => {
             // If the user changes the isCustomLicense, set the licenseLink to null
-            model.value.identification.licenseLink = null;
+            if (isNew.value) {
+                model.value.identification.licenseLink = null;
+            }
         });
 
         // If the user changes the data policy, update the topic hierarchy accordingly
