@@ -1824,36 +1824,6 @@ export default defineComponent({
             return result;
         };
 
-        // replace the data policy in the topic hierarchy
-        const replaceDataPolicyInTopicHierarchy = () => {
-            let policy = model.value.identification.wmoDataPolicy;
-            let hierarchy = model.value.identification.topicHierarchy;
-
-            // Replace 'core' or 'recommended' in the topic hierachy
-            // string with the policy
-            if (hierarchy) {
-                model.value.identification.topicHierarchy = hierarchy.replace(/core|recommended/g, policy);
-            }
-        // Method to check that the identifier does not already exist
-        const createAndCheckIdentifier = (identifier) => {
-            let randomCode = random6ASCIICharacters();
-
-            // Replace centre ID and data policy
-            let id = identifier.replace(
-                '$CENTRE_ID', model.value.identification.centreID
-            ).replace(
-                '$DATA_POLICY', randomCode
-            ).replace(/\..*$/, ''); 
-
-            // If id already in items, inform the user that they will need to change the id in the form
-            if (items.value.includes(id)) {
-                message.value = "There already is a dataset for this centre ID and data type. If you want to publish another dataset with the same centre ID and data type, please provide a new unique identifier for this dataset.";
-                openMessageDialog.value = true;
-            }
-
-            return id;
-        };
-
         const updateTopicHierarchy = () => {
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
