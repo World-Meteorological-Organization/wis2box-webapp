@@ -31,7 +31,7 @@
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
                                         label="Data Type" variant="outlined"  :disabled="isNonRealTime">
                             </v-select>
-                            <v-checkbox v-model="isNonRealTime" label="Publish URLs (no WIS2 data-notifications)" color="#003DA5" />
+                            <v-checkbox v-model="isNonRealTime" label="Publish URL(s) (no WIS2 data-notifications)" color="#003DA5" />
                         </v-card-text>
                         <v-card-actions>
                             <v-col cols="12">
