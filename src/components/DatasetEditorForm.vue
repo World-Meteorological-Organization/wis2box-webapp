@@ -31,7 +31,7 @@
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
                                         label="Data Type" variant="outlined"  :disabled="isNonRealTime">
                             </v-select>
-                            <v-checkbox v-model="isNonRealTime" label="Non Real-Time data" color="#003DA5" />
+                            <v-checkbox v-model="isNonRealTime" label="Publish URLs (no WIS2 data-notifications)" color="#003DA5" />
                         </v-card-text>
                         <v-card-actions>
                             <v-col cols="12">
@@ -157,7 +157,7 @@
                                 v-model="model.identification.wmoDataPolicy" :rules="[rules.required]"
                                 variant="outlined" :disabled="!isNew"></v-select>
                         </v-col>
-                        <v-col cols="4">
+                        <v-col cols="4" v-if="isNonRealTime === false">
                             <v-select label="Discipline topic"
                                 :items="earthSystemDisciplines" item-title="name" item-value="name"
                                 v-model="model.identification.subTopic1" :rules="[rules.required]"
@@ -192,7 +192,7 @@
                             variant="outlined" :disabled="true" :value="true"></v-checkbox>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row v-if="isNonRealTime === false">
                         <!-- toggle between selection sub-discipline topics and free-text input -->
                         <v-col cols="8" v-if="!model.identification.isExperimental">
                             <v-autocomplete label="Sub-discipline topics (choose one)"
@@ -211,7 +211,7 @@
                             variant="outlined" :disabled="!isNew || selectedTemplate?.label !== 'other'"></v-checkbox>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row v-if="isNonRealTime === false">
                         <!-- the field topicHierarchy should be updated based on the selection of sub-topic -->
                         <v-col cols="12">
                             <v-text-field label="Topic Hierarchy" type="string"
@@ -943,13 +943,12 @@
                         <v-col cols="12">
                             <v-row>
                                 <v-col cols="12">
-                                    <v-text-field label="Link URL" v-model="linkURL"
+                                    <v-text-field label="Link URL" v-model="linkURL" :rules="[rules.url]" 
                                         hint="URL to the dataset or resource, has to be a valid URL (http/https)"
                                         variant="outlined">
                                     </v-text-field>
                                 </v-col>
                             </v-row>
-
                             <v-row>
                                 <v-col cols="12">
                                     <v-text-field label="Link Description" v-model="linkTitle"
@@ -957,7 +956,6 @@
                                     </v-text-field>
                                 </v-col>
                             </v-row>
-
                             <v-row>
                                 <v-col cols="12">
                                     <v-btn color="#003DA5" variant="flat" block @click="saveLink">Save</v-btn>
@@ -1571,6 +1569,12 @@ export default defineComponent({
                 if (link.rel === 'license') {
                     license_link = link.href;
                 }
+                if (link.rel === 'archives') {
+                    formModel.links.push({
+                        title: link.title,
+                        href: link.href
+                    });
+                }
             });
             // check if the link is license_options, if not it is a customLicense
             let is_custom_license = true;
@@ -1590,24 +1594,31 @@ export default defineComponent({
             // Centre ID from wis2box section
             formModel.identification.centreID = schema.wis2box['centre_id'];
 
-            // Topic hierarcy from properties section, removing
+            // Topic hierarchy from properties section, removing
             // the 'origin/a/wis2' prefix
-            let fullTopic = schema.properties['wmo:topicHierarchy'];
-            formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+            if (schema.properties['wmo:topicHierarchy']) {
+                let fullTopic = schema.properties['wmo:topicHierarchy'];
+                console.log("wmo:topicHierarchy=", fullTopic);
+                schema.properties['wmo:topicHierarchy'];
+                formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
+                // subTopic1 is the 7th-level
+                formModel.identification.subTopic1 = fullTopic.split('/')[6];
+                // subTopic2 is the everything after the 7th level unless it starts with experimental
+                if (fullTopic.split('/')[7] === 'experimental') {
+                    formModel.identification.isExperimental = true;
+                    // subTopic2 is everything after experimental
+                    formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
+                }
+                else {
+                    formModel.identification.isExperimental = false;
+                    formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/');
+                }
+            }
+            else  {
+                formModel.identification.topicHierarchy = null;
+                isNonRealTime.value = true;
+            }
             
-            // subTopic1 is the 7th-level
-            formModel.identification.subTopic1 = fullTopic.split('/')[6];
-            // subTopic2 is the everything after the 7th level unless it starts with experimental
-            if (fullTopic.split('/')[7] === 'experimental') {
-                formModel.identification.isExperimental = true;
-                // subTopic2 is everything after experimental
-                formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
-            }
-            else {
-                formModel.identification.isExperimental = false;
-                formModel.identification.subTopic2 = fullTopic.split('/').slice(7).join('/');
-            }
-
             // Time period information
             if (schema.time?.interval) {
                 formModel.extents.dateStarted = schema.time.interval[0];
@@ -1696,10 +1707,6 @@ export default defineComponent({
                 formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
             }
 
-            // Links information, only show links with rel="data"
-            if (schema.links) {
-                formModel.links = schema.links.filter(link => link.rel === "data");
-            }
             return formModel;
         }
 
@@ -2397,17 +2404,16 @@ export default defineComponent({
             schemaModel.properties.updated = currentDTNoMilliseconds;
             schemaModel.properties["wmo:dataPolicy"] = form.identification.wmoDataPolicy;
 
-            if (form.identification.topicHierarchy) {
-                schemaModel.properties["wmo:topicHierarchy"] = formatWMOTopicHierarchy(form.identification.topicHierarchy);
+            // If the data is not non-real-time, add the topic hierarchy
+            if (form.identification.topicHierarchy && isNonRealTime.value === false) {
+                schemaModel.properties["wmo:topicHierarchy"] = `origin/a/wis2/${form.identification.topicHierarchy}`;
             }
             schemaModel.properties.id = form.identification.identifier;
             // add rel="data" to links
             form.links.forEach(link => {
-                link.rel = "data";
+                link.rel = "archives";
             });
             schemaModel.links = form.links;
-
-            schemaModel.links = [];
 
             // add user-provided licenseLink to to schemaModel.links if data-policy is 'recommended'
             if (form.identification.wmoDataPolicy === 'recommended') {     
@@ -2711,6 +2717,7 @@ export default defineComponent({
 
         // If the user sets to isNonRealTime to True, deselect the template
         watch(isNonRealTime, (newValue) => {
+            console.log(`isNonRealTime changed to ${newValue}`);
             if (newValue) {
                 selectedTemplate.value = null;
                 isEndDateDisabled.value = false;
