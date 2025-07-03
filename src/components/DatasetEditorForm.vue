@@ -1697,8 +1697,8 @@ export default defineComponent({
             if (schema.properties["wmo:dataPolicy"]) {
                 formModel.identification.wmoDataPolicy = schema.properties["wmo:dataPolicy"];
             }
-            // fill in the created date, unless isNonRealTime is true
-            if (schema.properties.created && !isNonRealTime.value) {
+            // fill in the created date
+            if (schema.properties.created) {
                 formModel.extents.dateCreated = schema.properties.created;
             }
 
