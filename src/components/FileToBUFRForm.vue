@@ -203,22 +203,30 @@
                                       <div class="hidden-md-and-down">
                                         <div class="file-actions" v-if="data_item.file_url">
                                           <DownloadButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="true" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="true" />
+                                          </div>
                                         </div>
                                         <div class="file-actions" v-if="data_item.data">
                                           <DownloadButton :fileName="data_item.filename" :data="data_item.data" :block="true" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :data="data_item.data" :block="true" />
+                                            </div>
                                         </div>
                                       </div>
                                       <!-- For narrow windows, make buttons less wide -->
                                       <div class="hidden-lg-and-up">
                                         <div class="file-actions" v-if="data_item.file_url">
                                           <DownloadButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="false" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="false" />
+                                          </div>
                                         </div>
                                         <div class="file-actions" v-if="data_item.data">
                                           <DownloadButton :fileName="data_item.filename" :data="data_item.data" :block="false" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :data="data_item.data" :block="false" />
+                                          </div>
                                         </div>
                                       </div>
                                   </div>
@@ -255,7 +263,6 @@
     import InspectBufrButton from '@/components/InspectBufrButton.vue';
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
-    import * as d3 from 'd3';
     import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
     export default defineComponent({
         name: 'FiletoBUFRForm',
@@ -272,7 +279,6 @@
             const theData = ref(null);
             const headers = ref(null);
             const incomingFile = ref(null);
-            const schema = ref(null);
             const step=ref(0);
             // const validationWarnings = ref([]);
             // const validationErrors = ref([]);
@@ -479,7 +485,22 @@
   
                     }
                 };
-              if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
+              if(plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
+                
+                payload = {
+                    inputs: {
+                        data: _arrayBufferToBase64(rawData.value),
+                        channel: datasetSelected.value.metadata.topic,
+                        metadata_id: datasetSelected.value.metadata.id,
+                        notify: notificationsOnPending.value,
+                        filename: incomingFile.value.name,
+                        datetime: date.value.toISOString(),
+                        wigos_station_identifier: stationSelected.value.id,
+                        is_binary: true,
+                    }
+                };
+              }
+              else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
               {
                 payload = {
                   inputs: {
@@ -491,6 +512,7 @@
                   }
                 };
               }
+              
             let apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-bufr2bufr/execution`;
               if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR") {
                 apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-csv2bufr/execution`;
@@ -498,7 +520,10 @@
               else if(plugin.value["plugin"] === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR") {
                 apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-synop2bufr/execution`;
               }
-
+              else if (plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
+                apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-publish_data/execution`;
+              }
+              
                 const response = await fetch(apiURL, {
                 method: 'POST',
                 headers: {
@@ -508,7 +533,8 @@
                 },
                 body: JSON.stringify(payload)
               });
-              
+              showDialog.value = true;
+              msg.value = JSON.stringify(payload);
               if (!response.ok) {
                 if (response.status == 401) {
                   msg.value = "Unauthorized, please provide a valid 'processes/wis2box' token"
@@ -523,6 +549,7 @@
                   msg.value = "API Error, please check the console";
                   console.error('HTTP error', response.status);
                 }
+                
                 showDialog.value = true;
                 result.value = {
                   "result": "API error",
@@ -532,6 +559,7 @@
                 };
                 
               } else {
+                
                 const data = await response.json();
                 result.value = data;
                 result.value.files = [];
@@ -579,18 +607,37 @@
                     }
                     break;
                   case 2:
-                    if( status.value.password ){
+                    
+                    if(!status.value.datasetPlugin ){
+                      if( !status.value.password || date.value === null || stationSelected.value === null ){
+                        showDialog.value = true;
+                        msg.value = "Please enter the authorization token, observation date and station identifier before proceeding";
+                      }
+                      else{
+                        plugin.value = {
+                          plugin: "wis2box.data.universal_data.UniversalData",
+                          key: "universal_data",
+                          
+                        };
+                        submit();
+                        proceed = true;
+                      }
+                    }
+                    else{
+                      if( status.value.password ){
+                        
                       let filetype = incomingFile.value.name.split('.').pop();
                       let keys="";
                       for ( let map in datasetSelected.value.mappings ){
                         
                         keys += map + ", ";
+                        
                         if(map === filetype)
                       {
                           
-                          plugin.key = map;
+                          
                           plugin.value = datasetSelected.value.mappings[map][0];
-                      
+                          
                           submit();
                           proceed = true;
                         }
@@ -603,7 +650,7 @@
                     else{
                       showDialog.value = true;
                       msg.value = "Please enter the authorization token before proceeding";
-                    }
+                    }}
                     break;
                 }
                 if( proceed ){
