@@ -114,6 +114,7 @@
                             <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue"/>
                             <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
                                 :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm" auto-apply/>
+                            <v-checkbox v-if="!status.datasetPlugin" v-model="isText" label="Read file as text" color="#" hide-details></v-checkbox>
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
@@ -298,6 +299,7 @@
             const stationSelected = ref(null);
             const rawData = ref(null);
             const plugin = ref(null);
+            const isText = ref(false);
             const date = ref(null);
             const msg = ref(null);
             const showDialog = ref(null);
@@ -496,7 +498,7 @@
                         filename: incomingFile.value.name,
                         datetime: date.value.toISOString(),
                         wigos_station_identifier: stationSelected.value.id,
-                        is_binary: true,
+                        is_binary: !isText.value,
                     }
                 };
               }
@@ -509,6 +511,17 @@
                       metadata_id: datasetSelected.value.metadata.id,
                       notify: notificationsOnPending.value,
                       template: plugin.value["template"],
+                  }
+                };
+              }
+              else if(plugin.value["plugin"] === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR")
+              {
+                payload = {
+                  inputs: {
+                      data: new TextDecoder().decode(rawData.value),
+                      channel: datasetSelected.value.metadata.topic,
+                      metadata_id: datasetSelected.value.metadata.id,
+                      notify: notificationsOnPending.value,
                   }
                 };
               }
@@ -588,16 +601,7 @@
                       msg.value = "Please select or drag and drop a file to upload";
                     }
                     break;
-                  // case 1:
-                  //   if( validationErrors.value.length === 0 ){
-                  //     proceed = true;
-                  //     status.value.fileValidated = true;
-                  //   }else{
-                  //     showDialog.value = true;
-                  //     status.value.fileValidated = false;
-                  //     msg.value = "Please fix validation errors before proceeding";
-                  //   }
-                  //   break;
+
                   case 1:
                     if( status.value.datasetIdentifier ){
                       proceed = true;
@@ -689,7 +693,7 @@
             });
 
             return {theData, headers, incomingFile, date, loadData, step, prev, next, scrollToRef,
-                     status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
+                     status, showToken, token, notificationsOnPending, isText, step1Color, step2Color, step3Color, step4Complete, step4Color,
                     datasetSelected, stationSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
