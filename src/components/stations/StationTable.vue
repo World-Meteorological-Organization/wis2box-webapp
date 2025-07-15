@@ -82,7 +82,6 @@ export default defineComponent({
             throw new Error(`HTTP error! Status: ${response.status}`);
           }else{
             let featureCollection = await response.json();
-            console.log("featureCollection", featureCollection);
             items.value = featureCollection.features.map( (feature) => {
               return{
                 actions: "actions",
@@ -91,9 +90,9 @@ export default defineComponent({
                 wigos_station_identifier: feature.properties.wigos_station_identifier,
                 traditional_station_identifier: feature.properties.traditional_station_identifier,
                 facility_type: feature.properties.facility_type,
-                latitude: feature.geometry.coordinates[1],
-                longitude: feature.geometry.coordinates[0],
-                elevation: feature.geometry.coordinates[2],
+                latitude: feature.geometry ? feature.geometry.coordinates[1] : null,
+                longitude: feature.geometry ? feature.geometry.coordinates[0] : null,
+                elevation: feature.geometry ? feature.geometry.coordinates[2] : null,
                 barometer_height: feature.properties.barometer_height,
                 territory_name: feature.properties.territory_name,
                 wmo_region: feature.properties.wmo_region,
