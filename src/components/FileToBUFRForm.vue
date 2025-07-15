@@ -488,7 +488,6 @@
                     }
                 };
               if(plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
-                
                 payload = {
                     inputs: {
                         data: _arrayBufferToBase64(rawData.value),
@@ -501,6 +500,9 @@
                         is_binary: !isText.value,
                     }
                 };
+                if( isText.value ){
+                  payload.inputs.data = new TextDecoder().decode(rawData.value);
+                }
               }
               else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
               {
@@ -546,8 +548,6 @@
                 },
                 body: JSON.stringify(payload)
               });
-              showDialog.value = true;
-              msg.value = JSON.stringify(payload);
               if (!response.ok) {
                 if (response.status == 401) {
                   msg.value = "Unauthorized, please provide a valid 'processes/wis2box' token"
