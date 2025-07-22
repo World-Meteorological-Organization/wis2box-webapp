@@ -1590,6 +1590,21 @@ export default defineComponent({
                 license_link: defaults.license_link
             };
 
+            // Plugins information
+            if (schema.wis2box["data_mappings"]?.plugins) {
+                formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
+                // if there are no plugins isNonRealTime should be true
+                if (formModel.plugins.length === 0) {
+                    console.log("No plugins found, setting isNonRealTime to true");
+                    isNonRealTime.value = true;
+                }
+            }
+            else {
+                console.log("No plugins found, setting isNonRealTime to true");
+                formModel.plugins = [];
+                isNonRealTime.value = true; // No plugins means it is a non-real-time dataset
+            }
+
             let license_link = null;
             // loop over links in the schema and when rel='license' set the licenseLink
             schema.links.forEach(link => {
@@ -1732,16 +1747,6 @@ export default defineComponent({
             // fill in the created date
             if (schema.properties.created) {
                 formModel.extents.dateCreated = schema.properties.created;
-            }
-
-            // Plugins information
-            if (schema.wis2box["data_mappings"]?.plugins) {
-                formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
-                // if there are no plugins isNonRealTime should be true
-                if (formModel.plugins.length === 0) {
-                    console.log("No plugins found, setting isNonRealTime to true");
-                    isNonRealTime.value = true;
-                }
             }
 
             return formModel;
