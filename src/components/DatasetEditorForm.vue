@@ -31,7 +31,7 @@
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
                                         label="Data Type" variant="outlined"  :disabled="isNonRealTime">
                             </v-select>
-                            <v-checkbox v-model="isNonRealTime" label="Publish URL(s) (no WIS2 data-notifications)" color="#003DA5" />
+                            <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
                         </v-card-text>
                         <v-card-actions>
                             <v-col cols="12">
@@ -98,6 +98,9 @@
             <!-- Metadata Editor -->
             <v-card v-if="metadataLoaded" class="mt-6 pa-3" style="overflow: initial; z-index: initial">
                 <v-card-title class="big-title">Metadata Editor</v-card-title>
+                <v-card-subtitle v-if="isNonRealTime">
+                    Metadata record for dataset without WIS2 data notifications
+                </v-card-subtitle>
                 <!-- Form which when filled and validated, can be exported or submitted -->
                 <v-form v-model="formFilled" ref="formRef">
                     <!-- Identification section -->
@@ -249,21 +252,21 @@
                         </v-col>
                     </v-row>
 
-                    <v-card-title class="big-title">
+                    <v-card-title class="big-title" v-if="!isNonRealTime">
                         Links to datasets
                         <v-btn icon="mdi-comment-question" variant="text" size="small"
                             @click="openLinkHelpDialog = true" />
                     </v-card-title>
-                    <v-container>
+                    <v-container v-if="!isNonRealTime">
+                        <p v-if="model.links?.length > 0">Dataset-links:</p>
+                        <p v-else>No links are currently associated with this dataset</p>
                         <v-table :hover="true" >
                             <thead>
                                 <tr>
-                                    <th scope="row">
-                                        <p v-if="model.links?.length > 0">Dataset-links:</p>
-                                        <p v-else>No links are currently associated with this dataset</p>
-                                    </th>
                                     <th scope="row">Title</th>
-                                    <th scope="row" class="text-right">URL</th>
+                                    <th scope="row">URL</th>
+                                    <th scope="row">rel</th>
+                                    <th scope="row" class="text-right"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -274,6 +277,9 @@
                                     </td>
                                     <td class="medium-title">
                                         {{ link.href }}
+                                    </td>
+                                    <td class="medium-title">
+                                        {{ link.rel }}
                                     </td>
                                     <td class="text-right">
                                         <v-btn class="mr-5" append-icon="mdi-update" color="#003DA5" variant="flat"
@@ -739,11 +745,13 @@
                         What is this section for?
                     </v-card-subtitle>
                     <v-card-text>
-                        <p>For non-real-time datasets, the user should provide at least one link enabling data access.</p>
+                        <p>For datasets without WIS2 data notifications, the user should provide at least one link enabling data access.</p>
                         <br>
                         <p><b>Link URL:</b> URL to to a web-accessible folder (WAF) or an API-endpoint.</p>
                         <br>
                         <p><b>Link Description:</b> Brief link title to describe dataset type and content.</p>
+                        <br>
+                        <p><b>Link Type:</b> Online data archive (rel='archives') or OpenAPI endpoint (rel='service-desc')</p>
                     </v-card-text>
                 </v-card>
             </v-dialog>
@@ -926,6 +934,10 @@
                                     <td><b>Link Description</b></td>
                                     <td>{{ linkTitle }}</td>
                                 </tr>
+                                <tr>
+                                    <td><b>Link Type</b></td>
+                                    <td>{{ linkType }}</td>
+                                </tr>
                             </tbody>
                         </v-table>
                     </v-card-item>
@@ -951,9 +963,16 @@
                             </v-row>
                             <v-row>
                                 <v-col cols="12">
-                                    <v-text-field label="Link Description" v-model="linkTitle"
+                                    <v-text-field label="Link Description" v-model="linkTitle" :rules="[rules.required]"
                                         hint="Descriptive title of the type and content of the link" variant="outlined">
                                     </v-text-field>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12">
+                                    <v-select label="Link Type" v-model="linkType" :items="linkTypeList" :rules="[rules.required]"
+                                        item-title="description" item-value="rel" variant="outlined">
+                                    </v-select>
                                 </v-col>
                             </v-row>
                             <v-row>
@@ -1067,6 +1086,12 @@ export default defineComponent({
             { name: 'year(s)', code: 'Y' }
         ];
 
+        // link types for dataset links
+        const linkTypeList = [
+            { rel: 'archives', description: 'Online data archive' },
+            { rel: 'service-desc', description: 'OpenAPI endpoint (such as JSON, YAML or OGC service capability)' }
+        ];
+
         // WCMP2 schema version
         const schemaVersion = "http://wis.wmo.int/spec/wcmp/2/conf/core";
 
@@ -1178,10 +1203,12 @@ export default defineComponent({
         const linkIsNew = ref(true);
         const linkTitle = ref(null);
         const linkURL = ref(null);
+        const linkType = ref(null);
         // Information for storing the previous link title and URL
         // when we overwrite the link info
         const previousLinkTitle = ref(null);
         const previousLinkURL = ref(null);
+        const previousLinkRel = ref(null);
         // Metadata form to be filled
         const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
         // Execution token to be entered by user
@@ -1568,11 +1595,17 @@ export default defineComponent({
             schema.links.forEach(link => {
                 if (link.rel === 'license') {
                     license_link = link.href;
-                }
-                if (link.rel === 'archives') {
+                } else if (link.rel === 'archives') {
                     formModel.links.push({
                         title: link.title,
-                        href: link.href
+                        href: link.href,
+                        rel: link.rel
+                    });
+                } else if (link.rel === 'service-desc') {
+                    formModel.links.push({
+                        title: link.title,
+                        href: link.href,
+                        rel: link.rel
                     });
                 }
             });
@@ -1616,7 +1649,6 @@ export default defineComponent({
             }
             else  {
                 formModel.identification.topicHierarchy = null;
-                isNonRealTime.value = true;
             }
             
             // Time period information
@@ -1705,6 +1737,11 @@ export default defineComponent({
             // Plugins information
             if (schema.wis2box["data_mappings"]?.plugins) {
                 formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
+                // if there are no plugins isNonRealTime should be true
+                if (formModel.plugins.length === 0) {
+                    console.log("No plugins found, setting isNonRealTime to true");
+                    isNonRealTime.value = true;
+                }
             }
 
             return formModel;
@@ -2135,12 +2172,14 @@ export default defineComponent({
                 linkIsNew.value = false;
                 linkTitle.value = link.title;
                 linkURL.value = link.href;
+                linkType.value = link.rel;
             }
             // If link is new (null), reset the fields
             else {
                 linkIsNew.value = true;
                 linkTitle.value = null;
                 linkURL.value = null;
+                linkType.value = null;
             }
         }
 
@@ -2159,6 +2198,7 @@ export default defineComponent({
             // Save the original plugin name and filetype
             previousLinkTitle.value = link?.title;
             previousLinkURL.value = link?.href;
+            previousLinkRel.value = link?.rel;
 
             populateLinkFields(link);
         };
@@ -2184,7 +2224,8 @@ export default defineComponent({
                 // Create a new link object
                 const newLink = {
                     title: linkTitle.value,
-                    href: linkURL.value
+                    href: linkURL.value,
+                    rel: linkType.value
                 };
                 // Add the link to the model
                 model.value.links.push(newLink);
@@ -2193,11 +2234,13 @@ export default defineComponent({
                 // Find the index of the link in the model
                 const index = model.value.links.findIndex(item =>
                     item.title === previousLinkTitle.value &&
-                    item.href === previousLinkURL.value);
+                    item.href === previousLinkURL.value &&
+                    item.rel === previousLinkRel.value);
                 // Update the link in the model
                 model.value.links[index] = {
                     title: linkTitle.value,
-                    href: linkURL.value
+                    href: linkURL.value,
+                    rel: linkType.value
                 };
             }
             // Close the dialog
@@ -2409,11 +2452,17 @@ export default defineComponent({
                 schemaModel.properties["wmo:topicHierarchy"] = `origin/a/wis2/${form.identification.topicHierarchy}`;
             }
             schemaModel.properties.id = form.identification.identifier;
-            // add rel="data" to links
-            form.links.forEach(link => {
-                link.rel = "archives";
-            });
-            schemaModel.links = form.links;
+            schemaModel.links = [];
+            // add add link in form.links to schemaModel.links
+            if (form.links && form.links.length > 0) {
+                form.links.forEach(link => {
+                    schemaModel.links.push({
+                        rel: link.rel,
+                        href: link.href,
+                        title: link.title
+                    });
+                });
+            }
 
             // add user-provided licenseLink to to schemaModel.links if data-policy is 'recommended'
             if (form.identification.wmoDataPolicy === 'recommended') {     
@@ -2424,7 +2473,6 @@ export default defineComponent({
                     type: "text/html"
                 });
             }
-
             return schemaModel;
         };
 
@@ -2446,7 +2494,7 @@ export default defineComponent({
 
             // add a message if there are no links for non-real-time data
             if (isNonRealTime.value && model.value.links.length === 0) {
-                message.value += " At least one link must be added for non-real-time data.";
+                message.value += " At least one link must be added for metadata without ";
             }
             // add a message for dateStarted and dateStopped errors
             if (dateStartedError.value !== '') {
@@ -2815,6 +2863,7 @@ export default defineComponent({
             subTopics2,
             license_options,
             durations,
+            linkTypeList,
             pluginList,
             templateList,
             bucketList,
@@ -2867,8 +2916,10 @@ export default defineComponent({
             linkIsNew,
             linkTitle,
             linkURL,
+            linkType,
             previousLinkTitle,
             previousLinkURL,
+            previousLinkRel,
             model,
             token,
             showToken,
