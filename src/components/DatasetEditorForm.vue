@@ -17,11 +17,12 @@
                 <v-dialog v-model="showInitialDialog" max-width="600px" persistent>
                     <v-card>
                         <v-card-title>
-                            Please enter some initial information
+                            New dataset: Initial Information
                             <v-btn icon="mdi-comment-question" variant="text" size="small"
                                 @click="openInitialHelpDialog = true" />
                         </v-card-title>
                         <v-card-text>
+                            <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
                             <v-row>
                                 <v-col cols="12">
                                     <v-combobox v-model="model.identification.centreID" :items="centreList"
@@ -29,9 +30,8 @@
                                 </v-col>
                             </v-row>
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
-                                        label="Data Type" variant="outlined"  :disabled="isNonRealTime">
+                                        label="Template" variant="outlined"  :disabled="isNonRealTime" v-if="!isNonRealTime">
                             </v-select>
-                            <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
                         </v-card-text>
                         <v-card-actions>
                             <v-col cols="12">
@@ -252,14 +252,14 @@
                         </v-col>
                     </v-row>
 
-                    <v-card-title class="big-title" v-if="!isNonRealTime">
-                        Links to datasets
+                    <v-card-title class="big-title" v-if="isNonRealTime">
+                        Data-access links
                         <v-btn icon="mdi-comment-question" variant="text" size="small"
                             @click="openLinkHelpDialog = true" />
                     </v-card-title>
-                    <v-container v-if="!isNonRealTime">
-                        <p v-if="model.links?.length > 0">Dataset-links:</p>
-                        <p v-else>No links are currently associated with this dataset</p>
+                    <v-container v-if="isNonRealTime">
+                        <p v-if="model.links?.length > 0">Data-access links:</p>
+                        <p v-else>No data-access links are currently associated with this dataset</p>
                         <v-table :hover="true" >
                             <thead>
                                 <tr>
@@ -293,7 +293,7 @@
                             </tbody>
                         </v-table>
                     </v-container>
-                    <v-row justify="center" class="mt-1">
+                    <v-row justify="center" class="mt-1" v-if="isNonRealTime">
                         <v-col cols="8">
                             <v-btn @click="configureLink()" append-icon="mdi-plus" color="#64BF40" block>Add A
                                 Link</v-btn>
@@ -310,8 +310,9 @@
                         <v-col cols="3">
                             <VueDatePicker placeholder="Begin Date in UTC" v-model="model.extents.dateStarted"
                                 :teleport="true" :enable-time-picker="false" format="yyyy-MM-dd" auto-apply required />
+                            <p v-if="model.extents.dateStarted === null" class="hint-text hint-invalid">Start date is required</p>
                         </v-col>
-                        <v-col cols="3">
+                        <v-col cols="3" v-if="!isEndDateDisabled">
                             <VueDatePicker placeholder="End Date in UTC" v-model="model.extents.dateStopped"
                                 :teleport="true" :enable-time-picker="false" format="yyyy-MM-dd"
                                 :disabled="isEndDateDisabled" :state="endDatePossible" auto-apply required />
@@ -319,7 +320,7 @@
                                 the start date!
                             </p>
                         </v-col>
-                        <v-col cols="2">
+                        <v-col cols="2" v-if="!isNonRealTime">
                             <v-checkbox v-model="isEndDateDisabled" label="Dataset ongoing" color="#003DA5" :disabled="isNonRealTime"/>
                         </v-col>
                         <v-col cols="4">
@@ -545,22 +546,18 @@
                     </v-card-subtitle>
                     <v-card-text>
                         <p>To begin creating a new dataset, we require some initial information in order to
-                            pre-fill the
-                            form.</p>
+                            pre-fill the form.</p>
+                        <p><i>Note: use the checkbox if you wish to publish metadata without WIS2 data notifications (requires a data-access link to be provided). </i></p>
                         <br>
                         <p><b>Centre ID:</b> The agency acronym (in lower case and no spaces), as specified by
                             the WMO Member.</p>
                         <br>
-                        <p><b>Data Type:</b> For real-time data, you can select the type of data you are creating metadata for
-                            from a list of templates.
+                        <p><b>Template</b> For real-time data, you can select the type of data you are creating metadata for from a list of templates.
                             This ensures you are using the correct topic-hierarchy, along with suggestions for title and keywords and default data-mappings.
                             <br>
                             <i>If 'other' is
                                 selected, you are responsible for ensuring the correct WIS2 Topic Hierarchy is used and you will need to define your own data-mappings.</i></p>
                         <br>
-                        <p><b>no data-notifications:</b> Select this is you do not wish to publish WIS2-data-notifications
-                            and you only wish to publish metadata referencing data from a static dataset url.
-                        </p>
                         <br>
                     </v-card-text>
                 </v-card>
@@ -738,7 +735,7 @@
 
             <v-dialog v-model="openLinkHelpDialog" max-width="600px">
                 <v-card>
-                    <v-toolbar title="Links to datasets" color="#003DA5">
+                    <v-toolbar title="Data-access links" color="#003DA5">
                         <v-btn icon="mdi-close" variant="text" size="small" @click="openLinkHelpDialog = false" />
                     </v-toolbar>
                     <v-card-subtitle>
@@ -994,7 +991,6 @@ import BboxEditor from "@/components/BboxEditor.vue";
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { VCard, VForm, VBtn, VChipGroup, VChip, VCombobox } from 'vuetify/lib/components/index.mjs';
 import Papa from 'papaparse';
-import { link, select } from "d3";
 
 const oapi = import.meta.env.VITE_API_URL;
 
@@ -1526,6 +1522,9 @@ export default defineComponent({
             // If the user selects 'Create New...', populate the form with default values
             if (identifier.value === "Create New...") {
                 isNew.value = true;
+                selectedTemplate.value = null;
+                isEndDateDisabled.value = true;
+                isNonRealTime.value = false; // Reset to default
                 // Set model to default values
                 model.value = deepClone(defaults);
                 formValidated.value = false;
@@ -1598,6 +1597,10 @@ export default defineComponent({
                     console.log("No plugins found, setting isNonRealTime to true");
                     isNonRealTime.value = true;
                 }
+                else {
+                    console.log("Plugins found, setting isNonRealTime to false");
+                    isNonRealTime.value = false; // If there are plugins, it is a real-time dataset
+                }
             }
             else {
                 console.log("No plugins found, setting isNonRealTime to true");
@@ -1656,6 +1659,7 @@ export default defineComponent({
                     formModel.identification.isExperimental = true;
                     // subTopic2 is everything after experimental
                     formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
+                    console.log("subTopic2 is experimental, set to: ", formModel.identification.subTopic2);
                 }
                 else {
                     formModel.identification.isExperimental = false;
@@ -2454,7 +2458,7 @@ export default defineComponent({
 
             // If the data is not non-real-time, add the topic hierarchy
             if (form.identification.topicHierarchy && isNonRealTime.value === false) {
-                schemaModel.properties["wmo:topicHierarchy"] = `origin/a/wis2/${form.identification.topicHierarchy}`;
+                schemaModel.properties["wmo:topicHierarchy"] = `${form.identification.topicHierarchy}`;
             }
             schemaModel.properties.id = form.identification.identifier;
             schemaModel.links = [];
@@ -2487,7 +2491,7 @@ export default defineComponent({
 
             // Check if date fields are filled
             dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required.';
-            dateStoppedError.value = model.value.extents.dateStopped ? '' : 'End Date is required.';
+            dateStoppedError.value = model.value.extents.dateStopped || isEndDateDisabled.value ? '' : 'End Date is required.';
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value) &&
                 (isNonRealTime.value === false || model.value.links.length !== 0) &&
@@ -2499,7 +2503,7 @@ export default defineComponent({
 
             // add a message if there are no links for non-real-time data
             if (isNonRealTime.value && model.value.links.length === 0) {
-                message.value += " At least one link must be added for metadata without ";
+                message.value += " At least one data-access-link must be added for metadata without WIS2 data notifications. ";
             }
             // add a message for dateStarted and dateStopped errors
             if (dateStartedError.value !== '') {
@@ -2768,34 +2772,42 @@ export default defineComponent({
 
         // Watched
 
-        // If the user sets to isNonRealTime to True, deselect the template
+        // Watch for changes in the isNonRealTime value, for new datasets
         watch(isNonRealTime, (newValue) => {
             console.log(`isNonRealTime changed to ${newValue}`);
-            if (newValue) {
+            if (isNew.value) {
+                console.log("resetting dateStarted and dateStopped");
                 selectedTemplate.value = null;
-                isEndDateDisabled.value = false;
-                // set dateStarted to null unless isNew is false
-                if (isNew.value) {
-                    console.log('isNew is true, setting dateStarted to null');
+                if (newValue) {
                     model.value.extents.dateStarted = null;
+                    model.value.extents.dateStopped = null;
+                    isEndDateDisabled.value = false;
                 }
+                else {
+                    // If the data is real-time, set the dateStarted to today and disable the end date
+                    model.value.extents.dateStarted = new Date().toISOString();
+                    model.value.extents.dateStopped = null;
+                    isEndDateDisabled.value = true;
+                }   
             }
         });
 
         watch(() => model.value.identification.subTopic1, () => {    
             // If the user changes sub-topic1, update the options in sub-topic2
-            const selectedSubTopic1 = model.value.identification.subTopic1;
-            // Filter the subTopics list to include only options starting with subTopic1,
-            // and remove the "subTopic1/" prefix from the string
-            subTopics2.value = subTopics.value
-            .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
-            .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
-            // check if subTopic2 is in the list of subTopics2
-            const isSubTopic2InList = subTopics2.value.includes(model.value.identification.subTopic2);
-            // If subTopic2 is not in the list, set it to null
-            if (!isSubTopic2InList) {
-                // Set subTopic2 to null
-                model.value.identification.subTopic2 = null;
+            if (isNew.value) {
+                const selectedSubTopic1 = model.value.identification.subTopic1;
+                // Filter the subTopics list to include only options starting with subTopic1,
+                // and remove the "subTopic1/" prefix from the string
+                subTopics2.value = subTopics.value
+                .filter(subTopic => subTopic.startsWith(selectedSubTopic1 + '/'))
+                .map(subTopic => subTopic.replace(selectedSubTopic1 + '/', ''));
+                // check if subTopic2 is in the list of subTopics2
+                const isSubTopic2InList = subTopics2.value.includes(model.value.identification.subTopic2);
+                // If subTopic2 is not in the list, set it to null
+                if (!isSubTopic2InList) {
+                    // Set subTopic2 to null
+                    model.value.identification.subTopic2 = null;
+                }
             }
         });
 
@@ -2816,15 +2828,21 @@ export default defineComponent({
 
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
-            updateTopicHierarchy();
+            if (isNew.value) {
+                updateTopicHierarchy();
+            }
         });
         // if the user changes the sub topic 1, update the topic hierarchy accordingly
         watch(() => model.value.identification.subTopic1, () => {
-            updateTopicHierarchy();
+            if (isNew.value) {
+                updateTopicHierarchy();
+            }
         });
         // if the user changes the sub topic 2, update the topic hierarchy accordingly
         watch(() => model.value.identification.subTopic2, () => {
-            updateTopicHierarchy();
+            if (isNew.value) {
+                updateTopicHierarchy();
+            }
         });
 
         // For each plugin name, auto populate the plugin fields
