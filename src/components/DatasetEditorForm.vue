@@ -2828,21 +2828,15 @@ export default defineComponent({
 
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
-            if (isNew.value) {
-                updateTopicHierarchy();
-            }
+            updateTopicHierarchy();
         });
         // if the user changes the sub topic 1, update the topic hierarchy accordingly
         watch(() => model.value.identification.subTopic1, () => {
-            if (isNew.value) {
-                updateTopicHierarchy();
-            }
+             updateTopicHierarchy();
         });
         // if the user changes the sub topic 2, update the topic hierarchy accordingly
         watch(() => model.value.identification.subTopic2, () => {
-            if (isNew.value) {
-                updateTopicHierarchy();
-            }
+            updateTopicHierarchy();
         });
 
         // For each plugin name, auto populate the plugin fields
