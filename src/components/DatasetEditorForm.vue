@@ -170,9 +170,9 @@
                     <v-row v-if="model.identification.wmoDataPolicy === 'recommended'">           
                         <v-col cols="8" v-if="model.identification.isCustomLicense">
                             <v-text-field 
-                                label="License (provide valid URL)" 
+                                label="License required for non-core data (provide valid URL)" 
                                 type="url" 
-                                v-model="model.identification.licenseLink" 
+                                v-model="model.identification.licenseLink"
                                 :rules="[rules.url]" 
                                 variant="outlined" 
                                 clearable>
@@ -189,7 +189,8 @@
                                 variant="outlined">
                             </v-select>
                         </v-col>
-                        <v-col cols="4">
+                        <v-col cols="4" v-if="1===0" >
+                            <!-- This checkbox is disabled until we can agree on dropdown options -->
                             <v-checkbox v-model="model.identification.isCustomLicense" 
                             label="custom license (provide your own link)"
                             variant="outlined" :disabled="true" :value="true"></v-checkbox>
@@ -1594,16 +1595,13 @@ export default defineComponent({
                 formModel.plugins = tidyPlugins(schema.wis2box["data_mappings"].plugins);
                 // if there are no plugins isNonRealTime should be true
                 if (formModel.plugins.length === 0) {
-                    console.log("No plugins found, setting isNonRealTime to true");
                     isNonRealTime.value = true;
                 }
                 else {
-                    console.log("Plugins found, setting isNonRealTime to false");
                     isNonRealTime.value = false; // If there are plugins, it is a real-time dataset
                 }
             }
             else {
-                console.log("No plugins found, setting isNonRealTime to true");
                 formModel.plugins = [];
                 isNonRealTime.value = true; // No plugins means it is a non-real-time dataset
             }
@@ -1649,7 +1647,6 @@ export default defineComponent({
             // the 'origin/a/wis2' prefix
             if (schema.properties['wmo:topicHierarchy']) {
                 let fullTopic = schema.properties['wmo:topicHierarchy'];
-                console.log("wmo:topicHierarchy=", fullTopic);
                 schema.properties['wmo:topicHierarchy'];
                 formModel.identification.topicHierarchy = fullTopic.replace(/origin\/a\/wis2\//g, '');
                 // subTopic1 is the 7th-level
@@ -1659,7 +1656,6 @@ export default defineComponent({
                     formModel.identification.isExperimental = true;
                     // subTopic2 is everything after experimental
                     formModel.identification.subTopic2 = fullTopic.split('/').slice(8).join('/');
-                    console.log("subTopic2 is experimental, set to: ", formModel.identification.subTopic2);
                 }
                 else {
                     formModel.identification.isExperimental = false;
@@ -2774,9 +2770,7 @@ export default defineComponent({
 
         // Watch for changes in the isNonRealTime value, for new datasets
         watch(isNonRealTime, (newValue) => {
-            console.log(`isNonRealTime changed to ${newValue}`);
             if (isNew.value) {
-                console.log("resetting dateStarted and dateStopped");
                 selectedTemplate.value = null;
                 if (newValue) {
                     model.value.extents.dateStarted = null;
@@ -2828,6 +2822,11 @@ export default defineComponent({
 
         // If the user changes the data policy, update the topic hierarchy accordingly
         watch(() => model.value.identification.wmoDataPolicy, () => {
+            // do not allow the user to set the data policy to 'core' if subTopic2 starts with 'aviation'
+            if (isNew.value && model.value.identification.subTopic2 &&
+                model.value.identification.subTopic2.startsWith("aviation")) {
+                model.value.identification.wmoDataPolicy = "recommended";
+            }
             updateTopicHierarchy();
         });
         // if the user changes the sub topic 1, update the topic hierarchy accordingly
@@ -2836,6 +2835,11 @@ export default defineComponent({
         });
         // if the user changes the sub topic 2, update the topic hierarchy accordingly
         watch(() => model.value.identification.subTopic2, () => {
+            // if subTopic2 starts with aviation set policy to recommended
+            if (isNew.value && model.value.identification.subTopic2 &&
+                model.value.identification.subTopic2.startsWith("aviation")) {
+                model.value.identification.wmoDataPolicy = "recommended";
+            }
             updateTopicHierarchy();
         });
 
