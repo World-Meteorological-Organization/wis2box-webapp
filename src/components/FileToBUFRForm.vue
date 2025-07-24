@@ -44,53 +44,6 @@
                             </v-card-text>
                         </v-card>
                     </v-stepper-window-item>
-                    <!-- <v-stepper-window-item value="2">
-                        <v-card>
-                            <v-card-title>Preview</v-card-title>
-                            <v-card-item>
-                                <div v-if="theData">
-                                    <v-data-table :items="theData" :headers="headers" class="elevation-1">
-                                        <template v-slot:item="{item}">
-                                            <tr>
-                                                <td v-for="(value, key) in item" :key="key">
-                                                    <v-tooltip
-                                                        v-if="item[key].msg !== ''"
-                                                        :text="item[key].msg">
-                                                        <template v-slot:activator="{ props }">
-                                                            <v-chip :color="item[key].status" v-bind="props">
-                                                                {{item[key].value}}
-                                                            </v-chip>
-                                                        </template>
-                                                    </v-tooltip>
-                                                    <v-chip v-else :color="item[key].status">
-                                                        {{item[key].value}}
-                                                    </v-chip>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </v-data-table>
-                                </div>
-                            </v-card-item>
-                            <v-card-item>
-                                <v-list v-if="validationWarnings.length > 0">
-                                    <v-list-item v-for="message in validationWarnings" :key="message" base-color="warning">
-                                        <template v-slot:prepend>
-                                            <v-icon icon="mdi-alert-circle"></v-icon>
-                                        </template>
-                                        {{ message }}
-                                    </v-list-item>
-                                </v-list>
-                                <v-list v-if="validationErrors.length > 0">
-                                    <v-list-item v-for="message in validationErrors" :key="message" base-color="error">
-                                        <template v-slot:prepend>
-                                            <v-icon icon="mdi-alert-circle"></v-icon>
-                                        </template>
-                                        {{ message }}
-                                    </v-list-item>
-                                </v-list>
-                            </v-card-item>
-                        </v-card>
-                    </v-stepper-window-item> -->
                     <v-stepper-window-item value="2">
                         <v-card>
                             <v-card-title>Select dataset identifier</v-card-title>
@@ -281,8 +234,7 @@
             const headers = ref(null);
             const incomingFile = ref(null);
             const step=ref(0);
-            // const validationWarnings = ref([]);
-            // const validationErrors = ref([]);
+
             const status = ref({
                 fileLoaded: false,
                 fileSized:false,
@@ -365,102 +317,16 @@
 
             const loadData = async() => {
                 if( incomingFile.value ){
-                    // load schema
-                    //await fetch("./csv2bufr/csvw_schema.json").then( (response) => response.json() ).then( (theData) => {schema.value = theData.tableSchema.columns});
                     // now load the data file
                     let reader = new FileReader();
                     
                     reader.readAsArrayBuffer(incomingFile.value);
                     reader.onload = async () => {
-                        // validationErrors.value = [];
-                        // validationWarnings.value = [];
-                        // load the data
-                        
+                        // load the data                        
                         rawData.value = reader.result;
 
-                        // theData.value = await d3.csvParse(reader.result, d3.autoType);
-                        // // create header object for table
-                        // headers.value = Object.keys(theData.value[0]).map( key => ({
-                        //     title: key,
-                        //     value: key,
-                        //     key: key,
-                        //     sortable: true,
-                        //     divider: true
-                        // }));
-                        // // check the headers against the schema
-                        // for(let column in headers.value ){
-                        //     let key = headers.value[column].key
-                        //     let schemaColumn = schema.value.find( col => col.titles === key )
-                        //     if( ! schemaColumn ){
-                        //         validationWarnings.value.push("Column '" + key +
-                        //             "' not found in schema, data will be skipped")
-                        //         headers.value[column].dataType = {base: null, minimum: null, maximum: null};
-                        //         headers.value[column].inSchema = false;
-                        //     }else{
-                        //         headers.value[column].dataType = schemaColumn.datatype;
-                        //         headers.value[column].inSchema = true;
-                        //         schemaColumn.present = true;
-                        //     }
-                        // }
-                        // for(let col in schema.value){
-                        //     if(!schema.value[col].present){
-                        //         let key = schema.value[col].titles;
-                        //         validationWarnings.value.push("Column '" + key +
-                        //             "' missing from data file, data will be set to missing in BUFR encoding");
-                        //     }
-                        // }
-                        // // now validate the data
-                        // let count = 0;
-                        // for(const record of theData.value){
-                        //     count++;
-                        //     for( const key in record){
-                        //         let header = headers.value.find(header => header.key === key );
-                        //         let value = record[key];
-                        //         record[key] = {
-                        //             value: value,
-                        //             status: "",
-                        //             msg: ""
-                        //         }
-                        //         let valid_min = false;
-                        //         let valid_max = false;
-                        //         let msg = "";
-                        //         let status = "success";
-                        //         if( header.inSchema ){
-                        //             if( header.dataType.minimum ){
-                        //                 valid_min = header.dataType.minimum
-                        //             }
-                        //             if( value && valid_min && (value < valid_min)){
-                        //                 msg = "Line " + count + ": Column '" +
-                        //                     key + "' out of range, value (" + value + ") < valid min (" +
-                        //                     valid_min + ")";
-                        //                 status = 'error';
-                        //                 validationErrors.value.push(msg);
-                        //             }
-                        //             if( header.dataType.maximum ){
-                        //                 valid_max = header.dataType.maximum
-                        //             }
-                        //             if( value && valid_max && (value > valid_max)){
-                        //                 msg = "Line " + count + ": Column '" + key +
-                        //                     "' out of range, value (" + value + ") > valid max (" + valid_max + ")";
-                        //                 status = 'error';
-                        //                 validationErrors.value.push(msg);
-                        //             }
-                        //         }else{
-                        //             status = "warning";
-                        //             msg = "Field not in schema";
-                        //         }
-                        //         if(((! value) && (value!==0)) | ( value === 'null')){  // this is horrible, there must be a better way
-                        //             msg = "Line " + count + ": Column '" + key + "' contains missing data";
-                        //             status = "warning"
-                        //             validationWarnings.value.push(msg);
-                        //         }
-                        //         record[key].status = status;
-                        //         record[key].msg = msg;
-                        //     }
-                        // }
-                        // get limits and kind from schema
                     };
-                    //step.value = 1;
+
                 }
             };
             const submit = async() => {
@@ -675,14 +541,6 @@
               status.value.fileLoaded = !!val;
               status.value.fileSized = val.size < 1024*1024;
             });
-
-            // watch( validationErrors, (val) => {
-            //   if( val && val.length > 0 ){
-            //     status.value.fileValidated = false;
-            //   }else{
-            //     status.value.fileValidated = true;
-            //   }
-            // });
 
             watch( token, () => {
               if( token.value && token.value.length > 0 ){
