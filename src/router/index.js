@@ -11,6 +11,12 @@ const routes = [
         component: () => import('@/views/Home.vue'),
       },
       {
+        path: 'manual_upload',
+        name: 'ManualUploadForm',
+        component: () => import('@/views/ManualUploadForm.vue'),
+        meta: {title: 'wis2box - Manual Data File Upload'}
+      },
+      {
         path: 'synop2bufr',
         name: 'SynopForm',
         component: () => import('@/views/SynopForm.vue'),

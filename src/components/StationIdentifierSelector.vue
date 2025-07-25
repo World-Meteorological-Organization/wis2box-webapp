@@ -2,7 +2,7 @@
   <div v-if="!errorMessage">
     <v-select v-if="(options !== null)" :items="options" item-title="id" item-value="metadata" :label="label"
       v-model="selected" :readonly="readonly" :rules="rules"
-      :hint="selected ? selected.description : 'Select dataset identifier'" persistent-hint :multiple="multiple"
+      :hint="selected ? selected.description : 'Select station identifier'" persistent-hint :multiple="multiple"
       return-object variant="outlined" />
   </div>
   <div v-else class="error">
@@ -16,7 +16,7 @@ import { VSelect, VTextField } from 'vuetify/lib/components/index.mjs';
 
 
 export default defineComponent({
-  name: 'DatasetIdentifierSelector',
+  name: 'StationIdentifierSelector',
   components: {
     VSelect, VTextField
   },
@@ -40,14 +40,14 @@ export default defineComponent({
     const testMode = import.meta.env.VITE_TEST_MODE === "true" || import.meta.env.VITE_API_URL == undefined;
 
     // Reactive variables
-    const apiUrl = `${import.meta.env.VITE_API_URL}/collections/discovery-metadata/items?f=json`;
+    const apiUrl = `${import.meta.env.VITE_API_URL}/collections/stations/items?f=json`;
     const options = ref(null);
     const selected = ref([]);
     const errorMessage = ref(null);
 
     // Computed
     const label = computed(() => {
-      let label = "Dataset Identifier";
+      let label = "Station Identifier";
       if (props.multiple) {
         label += "s";
       }
@@ -61,20 +61,18 @@ export default defineComponent({
         console.log("TEST_MODE is enabled");
         options.value = [
           {
-            id: "urn:wmo:md:test1-centre:core.test1.test1.test1",
+            id: "0-20000-0-00001",
             metadata: {
-              'id': "urn:wmo:md:test1-centre:core.test1.test1.test1",
-              'topic': "origin/a/wis2/test1-centre/core/test1"
-            },
-            description: "Test 1 description"
+              'id': "0-20000-0-00001",
+              'name': "fake1"
+            }
           },
           {
-            id: "urn:wmo:md:test2-centre:core.test2.test2.test2",
+            id: "0-20000-0-00002",
             metadata: {
-              'id': "urn:wmo:md:test2-centre:core.test2.test2.test2",
-              'topic': "origin/a/wis2/test2-centre/core/test2"
+              'id': "0-20000-0-00002",
+              'name': "fake2"
             },
-            description: "Test 2 description"
           },
         ]
 
@@ -90,15 +88,13 @@ export default defineComponent({
             if (data.features) {
               // Use Array.map to create a new array of the dataset IDs
               options.value = data.features.map(feature => {
-                if (feature.properties?.identifier) {
+                if (feature.properties?.wigos_station_identifier) {
                   return {
-                    id: feature.properties.identifier,
+                    id: feature.properties.wigos_station_identifier,
                     metadata: {
-                      "id": feature.properties.identifier,
-                      "topic": feature.properties['wmo:topicHierarchy']
+                      "id": feature.properties.wigos_station_identifier,
+                      "name": feature.properties['name']
                     },
-                    description: feature.properties['description'],
-                    mappings: feature.wis2box?.data_mappings.plugins || [],
                   }
                 }
               }
@@ -110,9 +106,9 @@ export default defineComponent({
           }
         }
         catch (error) {
-          errorMessage.value = "Error fetching dataset identifiers, please check the API end point." +
+          errorMessage.value = "Error fetching station identifiers, please check the API end point." +
             " See logs for more information.";
-          console.error("Error fetching dataset identifiers:", error)
+          console.error("Error fetching station identifiers:", error)
         }
       }
     };
@@ -122,8 +118,8 @@ export default defineComponent({
       let m = false;
       await fetchOptions();
       if (props.modelValue && props.modelValue.length) {
-        for (const topic of props.modelValue.metadata.topic) {
-          const option = options.value.find(option => option.value.metadata.topic === topic);
+        for (const name of props.modelValue.metadata.name) {
+          const option = options.value.find(option => option.value.metadata.name === name);
           if (option) {
             m = true;
             selected.value.push(option);
