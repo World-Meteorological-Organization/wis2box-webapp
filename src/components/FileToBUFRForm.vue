@@ -1,6 +1,6 @@
 <template>
         <v-container class="max-form-width">
-          <v-card-title class="big-title">Submit Data File</v-card-title>
+          <v-card-title class="big-title">Manual Data File Upload</v-card-title>
             <v-dialog v-model="showDialog" width="auto">
               <v-card>
                 <v-card-text>{{msg}}</v-card-text>
@@ -50,7 +50,15 @@
                             <v-col cols="12">
                                 <DatasetIdentifierSelector :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue"/>
                             </v-col>
-                            <v-checkbox v-model="status.datasetPlugin" label="Use dataset plugins" color="#" hide-details></v-checkbox>
+                            <v-checkbox v-model="status.datasetPlugin" label="Use dataset mappings" color="#" hide-details></v-checkbox>
+                            <v-card-text v-if="!status.datasetPlugin">
+                                <v-chip color="#64BF40" text-color="white">Universal plugin selected</v-chip>
+                                <p>This form will use the universal plugin, uploading the file without data transformation.</p>
+                            </v-card-text>
+                            <v-card-text v-if="status.datasetPlugin">
+                                <v-chip color="#64BF40" text-color="white">Dataset mappings selected</v-chip>
+                                <p>This form will use the pre-configured dataset mappings, uploading the file with data transformation from CSV or BUFR.</p>
+                            </v-card-text>
                         </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="3">
@@ -366,10 +374,10 @@
                         is_binary: !isText.value,
                     }
                 };
-                if( isText.value ){
+              if( isText.value ){
                   payload.inputs.data = new TextDecoder().decode(rawData.value);
-                }
-              }
+              } 
+            }
               else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
               {
                 payload = {
@@ -382,24 +390,10 @@
                   }
                 };
               }
-              else if(plugin.value["plugin"] === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR")
-              {
-                payload = {
-                  inputs: {
-                      data: new TextDecoder().decode(rawData.value),
-                      channel: datasetSelected.value.metadata.topic,
-                      metadata_id: datasetSelected.value.metadata.id,
-                      notify: notificationsOnPending.value,
-                  }
-                };
-              }
               
             let apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-bufr2bufr/execution`;
               if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR") {
                 apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-csv2bufr/execution`;
-              }
-              else if(plugin.value["plugin"] === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR") {
-                apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-synop2bufr/execution`;
               }
               else if (plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
                 apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-publish_data/execution`;
@@ -414,6 +408,9 @@
                 },
                 body: JSON.stringify(payload)
               });
+              // showDialog.value = true;
+              // msg.value = JSON.stringify(payload);
+
               if (!response.ok) {
                 if (response.status == 401) {
                   msg.value = "Unauthorized, please provide a valid 'processes/wis2box' token"
@@ -470,8 +467,43 @@
 
                   case 1:
                     if( status.value.datasetIdentifier ){
+                      if(!status.value.datasetPlugin){
                       proceed = true;
-                    }else{
+                    }
+                    else{
+                      let filetype = incomingFile.value.name.split('.').pop();
+                      let keys="";
+                      let foundMapping = false;
+                      for ( let map in datasetSelected.value.mappings ){
+                        
+                        keys += map + ", ";
+                        
+                        if(map === filetype)
+                      {
+                          foundMapping = true;
+                          if( datasetSelected.value.mappings[map][0].plugin === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR" || datasetSelected.value.mappings[map][0].plugin === "wis2box.data.bufr4.ObservationDataBUFR" ){
+                            plugin.value = datasetSelected.value.mappings[map][0];   
+                            proceed = true;
+                          }
+                          else if( datasetSelected.value.mappings[map][0].plugin === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR" ){
+                            showDialog.value = true;
+                            msg.value = "File type " + filetype + " uses a mapping from SYNOP to BUFR, please use the 'SYNOP to BUFR' form instead.";
+                          }
+                          else{
+                            showDialog.value = true;
+                            msg.value = "File type " + filetype + " does not have a mapping from CSV or BUFR.";
+                          }
+                          
+                        }
+                      }
+                      if( !foundMapping ){
+                        showDialog.value = true;
+                        msg.value = "No mapping found for file type " + filetype + " in the following keys: " + keys.slice(0, -2);
+                      }
+                    }
+
+                    }
+                    else{
                       showDialog.value = true;
                       msg.value = "Please select a dataset to publish on before proceeding";
                     }
@@ -495,27 +527,8 @@
                     }
                     else{
                       if( status.value.password ){
-                        
-                      let filetype = incomingFile.value.name.split('.').pop();
-                      let keys="";
-                      for ( let map in datasetSelected.value.mappings ){
-                        
-                        keys += map + ", ";
-                        
-                        if(map === filetype)
-                      {
-                          
-                          
-                          plugin.value = datasetSelected.value.mappings[map][0];
-                          
-                          submit();
-                          proceed = true;
-                        }
-                      }
-                      if( !proceed ){
-                        showDialog.value = true;
-                        msg.value = "No mapping found for file type " + filetype + " in the following keys: " + keys.slice(0, -2);
-                      }
+                        submit();
+                        proceed = true;                     
                     }    
                     else{
                       showDialog.value = true;
