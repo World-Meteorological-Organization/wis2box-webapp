@@ -11,9 +11,9 @@ const routes = [
         component: () => import('@/views/Home.vue'),
       },
       {
-        path: 'file2bufr',
-        name: 'FileToBUFRForm',
-        component: () => import('@/views/FileToBUFRForm.vue'),
+        path: 'manual_upload',
+        name: 'ManualUploadForm',
+        component: () => import('@/views/ManualUploadForm.vue'),
         meta: {title: 'wis2box - Manual Data File Upload'}
       },
       {

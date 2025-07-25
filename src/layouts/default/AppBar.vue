@@ -18,7 +18,7 @@
     <v-list :opened="open" dense nav>
       <v-list-item prepend-icon="mdi-home" title="Home" exact to="/" />
 
-      <v-list-item prepend-icon="mdi-file-excel" title="File Form" exact to="/file2bufr" />
+      <v-list-item prepend-icon="mdi-file-excel" title="File Upload Form" exact to="/manual_upload" />
 
       <v-list-item prepend-icon="mdi-card-text" title="SYNOP Form" exact to="/synop2bufr" />
 

@@ -227,7 +227,7 @@
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
     export default defineComponent({
-        name: 'FiletoBUFRForm',
+        name: 'ManualUploadForm',
         components: {
             VFileInput, VCardActions, VBtn, VCard, VCardText, VCardItem, VDataTable,
             VChip, VTooltip, VListItem, VList, VContainer,
@@ -338,7 +338,7 @@
                 }
             };
             const submit = async() => {
-                FiletoBUFR();
+                FileUpload();
                 status.value.submitted = true;
             };
             function _arrayBufferToBase64( buffer ) {
@@ -350,7 +350,7 @@
               }
               return window.btoa( binary );
           }
-            const FiletoBUFR = async() => {
+            const FileUpload = async() => {
               
               let payload = {
                     inputs: {
