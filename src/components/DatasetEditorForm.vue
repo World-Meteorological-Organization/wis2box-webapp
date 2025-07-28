@@ -22,7 +22,6 @@
                                 @click="openInitialHelpDialog = true" />
                         </v-card-title>
                         <v-card-text>
-                            <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
                             <v-row>
                                 <v-col cols="12">
                                     <v-combobox v-model="model.identification.centreID" :items="centreList"
@@ -30,7 +29,7 @@
                                 </v-col>
                             </v-row>
                             <v-select v-model="selectedTemplate" :items="templateFiles" item-title="label" return-object
-                                        label="Template" variant="outlined"  :disabled="isNonRealTime" v-if="!isNonRealTime">
+                                        label="Template" variant="outlined">
                             </v-select>
                         </v-card-text>
                         <v-card-actions>
@@ -98,9 +97,6 @@
             <!-- Metadata Editor -->
             <v-card v-if="metadataLoaded" class="mt-6 pa-3" style="overflow: initial; z-index: initial">
                 <v-card-title class="big-title">Metadata Editor</v-card-title>
-                <v-card-subtitle v-if="isNonRealTime">
-                    Metadata record for dataset without WIS2 data notifications
-                </v-card-subtitle>
                 <!-- Form which when filled and validated, can be exported or submitted -->
                 <v-form v-model="formFilled" ref="formRef">
                     <!-- Identification section -->
@@ -196,6 +192,9 @@
                             variant="outlined" :disabled="true" :value="true"></v-checkbox>
                         </v-col>
                     </v-row>
+                    <v-row v-if="selectedTemplate?.label === 'other'">
+                        <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
+                    </v-row>
                     <v-row v-if="isNonRealTime === false">
                         <!-- toggle between selection sub-discipline topics and free-text input -->
                         <v-col cols="8" v-if="!model.identification.isExperimental">
@@ -224,40 +223,14 @@
                                 variant="outlined" disabled></v-text-field>
                         </v-col>
                     </v-row>
-                    <v-row>
-                        <v-col cols="4">
-                            <v-select label="Earth System Disciplines" v-model="model.identification.concepts" multiple
-                                :items="earthSystemDisciplines" item-title="name" item-value="name"
-                                variant="outlined"></v-select>
-                        </v-col>
-                        <v-col cols="8">
-                            <v-row dense>
-                                <v-col cols="4">
-                                    <v-text-field label="Keywords (3 minimum)" type="array" v-model="keyword"
-                                        @keyup.enter="addKeyword" variant="outlined" clearable
-                                        :rules="[rules.keywords]"></v-text-field>
-                                </v-col>
-                                <v-col cols="1">
-                                    <v-btn color="#003DA5" variant="flat" icon="mdi-plus" size="large"
-                                        @click="addKeyword" :disabled="keyword === ''"></v-btn>
-                                </v-col>
-                                <v-col cols="7">
-                                    <v-chip-group>
-                                        <v-chip v-for="keyword in model.identification.keywords" :key="keyword" closable
-                                            label @click:close="removeKeyword(keyword)">
-                                            {{ keyword }}
-                                        </v-chip>
-                                    </v-chip-group>
-                                </v-col>
-                            </v-row>
-                        </v-col>
-                    </v-row>
-
                     <v-card-title class="big-title" v-if="isNonRealTime">
                         Data-access links
                         <v-btn icon="mdi-comment-question" variant="text" size="small"
                             @click="openLinkHelpDialog = true" />
                     </v-card-title>
+                    <v-card-subtitle v-if="isNonRealTime">
+                        No WIS2 Data Notifications will be published for this dataset. At least one data access link is required.
+                    </v-card-subtitle>
                     <v-container v-if="isNonRealTime">
                         <p v-if="model.links?.length > 0">Data-access links:</p>
                         <p v-else>No data-access links are currently associated with this dataset</p>
@@ -301,6 +274,34 @@
                         </v-col>
                     </v-row>
                     <v-row>
+                    </v-row>
+                    <v-row>
+                        <v-col cols="4">
+                            <v-select label="Earth System Disciplines" v-model="model.identification.concepts" multiple
+                                :items="earthSystemDisciplines" item-title="name" item-value="name"
+                                variant="outlined"></v-select>
+                        </v-col>
+                        <v-col cols="8">
+                            <v-row dense>
+                                <v-col cols="4">
+                                    <v-text-field label="Keywords (3 minimum)" type="array" v-model="keyword"
+                                        @keyup.enter="addKeyword" variant="outlined" clearable
+                                        :rules="[rules.keywords]"></v-text-field>
+                                </v-col>
+                                <v-col cols="1">
+                                    <v-btn color="#003DA5" variant="flat" icon="mdi-plus" size="large"
+                                        @click="addKeyword" :disabled="keyword === ''"></v-btn>
+                                </v-col>
+                                <v-col cols="7">
+                                    <v-chip-group>
+                                        <v-chip v-for="keyword in model.identification.keywords" :key="keyword" closable
+                                            label @click:close="removeKeyword(keyword)">
+                                            {{ keyword }}
+                                        </v-chip>
+                                    </v-chip-group>
+                                </v-col>
+                            </v-row>
+                        </v-col>
                     </v-row>
                     <v-card-title>
                         Temporal Properties
@@ -458,6 +459,9 @@
                     <v-btn icon="mdi-comment-question" variant="text" size="small"
                         @click="openPluginHelpDialog = true" />
                 </v-card-title>
+                <v-card-subtitle>
+                    Dataset Mappings determine how new data uploaded the dataset-folder is processed. At least one plugin is required.
+                </v-card-subtitle>
                 <v-container>
                     <v-table v-if="canShowPluginTable" :hover="true">
                         <thead>
@@ -548,7 +552,6 @@
                     <v-card-text>
                         <p>To begin creating a new dataset, we require some initial information in order to
                             pre-fill the form.</p>
-                        <p><i>Note: use the checkbox if you wish to publish metadata without WIS2 data notifications (requires a data-access link to be provided). </i></p>
                         <br>
                         <p><b>Centre ID:</b> The agency acronym (in lower case and no spaces), as specified by
                             the WMO Member.</p>
@@ -597,6 +600,7 @@
                             Policy.
                         </p>
                         <br>
+                        <p><b>Publish metadata without WIS2 data notifications:</b> To publish metadata using a static data URL instead of publishing data-notifications over MQTT. End-date is required. </p>
                         <p><b>Discipline Topic:</b> 7th level of the Topic Hierarchy</p>
                         <p><b>Sub-discipline Topics:</b> Topic Hierarchy from the 8th level onwards, available options are based on the latest WIS2 Topic Hierarchy.</p>
                         <p><i>Note: use 'experimental' if the channel for your data is not yet available.</i></p>
@@ -745,11 +749,11 @@
                     <v-card-text>
                         <p>For datasets without WIS2 data notifications, the user should provide at least one link enabling data access.</p>
                         <br>
-                        <p><b>Link URL:</b> URL to to a web-accessible folder (WAF) or an API-endpoint.</p>
+                        <p><b>URL:</b> URL to to a web-accessible folder (WAF) or an API-endpoint.</p>
                         <br>
-                        <p><b>Link Description:</b> Brief link title to describe dataset type and content.</p>
+                        <p><b>Description:</b> Brief link title to describe dataset type and content.</p>
                         <br>
-                        <p><b>Link Type:</b> Online data archive (rel='archives') or OpenAPI endpoint (rel='service-desc')</p>
+                        <p><b>Type:</b> Defines the "rel" (link-relationship) associated to the URL. Choose between "Online data archive" (rel='archives') and "API or Web Service" (rel='service-desc')</p>
                     </v-card-text>
                 </v-card>
             </v-dialog>
@@ -925,15 +929,15 @@
                         <v-table class="my-2">
                             <tbody>
                                 <tr>
-                                    <td><b>Link URL</b></td>
+                                    <td><b>URL</b></td>
                                     <td>{{ linkURL }}</td>
                                 </tr>
                                 <tr>
-                                    <td><b>Link Description</b></td>
+                                    <td><b>Description</b></td>
                                     <td>{{ linkTitle }}</td>
                                 </tr>
                                 <tr>
-                                    <td><b>Link Type</b></td>
+                                    <td><b>Type</b></td>
                                     <td>{{ linkType }}</td>
                                 </tr>
                             </tbody>
@@ -953,7 +957,7 @@
                         <v-col cols="12">
                             <v-row>
                                 <v-col cols="12">
-                                    <v-text-field label="Link URL" v-model="linkURL" :rules="[rules.url]" 
+                                    <v-text-field label="URL" v-model="linkURL" :rules="[rules.url]" 
                                         hint="URL to the dataset or resource, has to be a valid URL (http/https)"
                                         variant="outlined">
                                     </v-text-field>
@@ -961,14 +965,14 @@
                             </v-row>
                             <v-row>
                                 <v-col cols="12">
-                                    <v-text-field label="Link Description" v-model="linkTitle" :rules="[rules.required]"
+                                    <v-text-field label="Description" v-model="linkTitle" :rules="[rules.required]"
                                         hint="Descriptive title of the type and content of the link" variant="outlined">
                                     </v-text-field>
                                 </v-col>
                             </v-row>
                             <v-row>
                                 <v-col cols="12">
-                                    <v-select label="Link Type" v-model="linkType" :items="linkTypeList" :rules="[rules.required]"
+                                    <v-select label="Type" v-model="linkType" :items="linkTypeList" :rules="[rules.required]"
                                         item-title="description" item-value="rel" variant="outlined">
                                     </v-select>
                                 </v-col>
@@ -1085,8 +1089,8 @@ export default defineComponent({
 
         // link types for dataset links
         const linkTypeList = [
-            { rel: 'archives', description: 'Online data archive' },
-            { rel: 'service-desc', description: 'OpenAPI endpoint (such as JSON, YAML or OGC service capability)' }
+            { rel: 'archives', description: 'Online data archive (rel="archives")' },
+            { rel: 'service-desc', description: 'API or Web Service (rel="service-desc")' }
         ];
 
         // WCMP2 schema version
@@ -2771,7 +2775,7 @@ export default defineComponent({
         // Watch for changes in the isNonRealTime value, for new datasets
         watch(isNonRealTime, (newValue) => {
             if (isNew.value) {
-                selectedTemplate.value = null;
+                model.value.identification.isExperimental = false; // Reset isExperimental to false when switching between real-time and non-real-time
                 if (newValue) {
                     model.value.extents.dateStarted = null;
                     model.value.extents.dateStopped = null;
