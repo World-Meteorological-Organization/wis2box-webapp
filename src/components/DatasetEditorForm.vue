@@ -192,7 +192,7 @@
                             variant="outlined" :disabled="true" :value="true"></v-checkbox>
                         </v-col>
                     </v-row>
-                    <v-row v-if="selectedTemplate?.label === 'other'">
+                    <v-row v-if="selectedTemplate?.label === 'other' && isNew">
                         <v-checkbox v-model="isNonRealTime" label="Publish metadata without WIS2 data notifications" color="#003DA5" />
                     </v-row>
                     <v-row v-if="isNonRealTime === false">
