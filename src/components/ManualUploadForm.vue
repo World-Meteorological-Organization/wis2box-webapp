@@ -75,7 +75,6 @@
                             <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue"/>
                             <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
                                 :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm" auto-apply/>
-                            <v-checkbox v-if="!status.datasetPlugin" v-model="isText" label="Read file as text" color="#" hide-details></v-checkbox>
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
@@ -152,7 +151,7 @@
                                       <v-icon color="#00BD9D"></v-icon>
                                     </template>
                                     <!-- If number of BUFR files > 0, set text to green -->
-                                    <span :style="{ color: '#00BD9D' }">Output BUFR files: {{ result.files.length }}</span>
+                                    <span :style="{ color: '#00BD9D' }">Output files: {{ result.files.length }}</span>
                                   </v-list-item>
 
                                 </template>
@@ -198,7 +197,7 @@
 
                               <!-- BUFR files drop-down if there are no warnings -->
                               <v-list-item v-else prepend-icon="mdi-check-circle">
-                                <span>Output BUFR files: 0</span>
+                                <span>Output files: 0</span>
                               </v-list-item>
 
                             </v-list>
@@ -259,7 +258,6 @@
             const stationSelected = ref(null);
             const rawData = ref(null);
             const plugin = ref(null);
-            const isText = ref(false);
             const date = ref(null);
             const msg = ref(null);
             const showDialog = ref(null);
@@ -371,12 +369,9 @@
                         filename: incomingFile.value.name,
                         datetime: date.value.toISOString(),
                         wigos_station_identifier: stationSelected.value.id,
-                        is_binary: !isText.value,
+                        is_binary: true
                     }
                 };
-              if( isText.value ){
-                  payload.inputs.data = new TextDecoder().decode(rawData.value);
-              } 
             }
               else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
               {
@@ -564,7 +559,7 @@
             });
 
             return {theData, headers, incomingFile, date, loadData, step, prev, next, scrollToRef,
-                     status, showToken, token, notificationsOnPending, isText, step1Color, step2Color, step3Color, step4Complete, step4Color,
+                     status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
                     datasetSelected, stationSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
