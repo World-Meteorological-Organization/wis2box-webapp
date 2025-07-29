@@ -21,6 +21,5 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
-tests/tests/wis2box_data/auth-data/auth.db
-tests/wis2box_data/.ssh/id_rsa
-tests/wis2box_data/.ssh/id_rsa.pub
+tests/wis2box_data/.ssh
+tests/tests/wis2box_data/auth-data

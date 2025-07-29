@@ -108,7 +108,7 @@ This will start the web app which will be available at your `WIS2BOX_URL`/wis2bo
 
 ## Testing the wis2box-webapp image as part of the wis2box stack
 
-You can also run the web app as part of your wis2box stack (<a href="https://docs.wis2box.wis.wmo.int/en/1.0b7/">see the wis2box documentation</a>).
+You can also run the web app as part of your wis2box stack (<a href="https://docs.wis2box.wis.wmo.int">see the wis2box documentation</a>).
 
 To do this, run the following commands:
 
