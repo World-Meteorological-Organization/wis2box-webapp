@@ -48,18 +48,30 @@
                         <v-card>
                             <v-card-title>Select dataset identifier</v-card-title>
                             <v-col cols="12">
-                                <DatasetIdentifierSelector :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue"/>
+                                <DatasetIdentifierSelector v-if="status.datasetLoad" :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue" :key="datasetKey"/>
                             </v-col>
                             <v-checkbox v-model="status.datasetPlugin" label="Use dataset mappings" color="#" hide-details></v-checkbox>
                             <v-card-text v-if="!status.datasetPlugin">
                                 <v-chip color="#64BF40" text-color="white">Universal plugin selected</v-chip>
-                                <p>This form will use the universal plugin, uploading the file without data transformation.</p>
+                                <p>This form will use the universal plugin, uploading the file without data transformation. Please provide additional information required by the notification.</p>
                             </v-card-text>
                             <v-card-text v-if="status.datasetPlugin">
                                 <v-chip color="#64BF40" text-color="white">Dataset mappings selected</v-chip>
                                 <p>This form will use the pre-configured dataset mappings, uploading the file with data transformation from CSV or BUFR.</p>
                             </v-card-text>
-                        </v-card>
+                            <v-card-text v-if="!status.datasetPlugin">
+                                <v-chip color="#A52A2A" text-color="black">Date is required.</v-chip>
+                            </v-card-text>
+                            <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
+                                :teleport="true" :start-time="startTime" time-picker-inline format="yyyy-MM-dd HH:mm" utc="preserve"/>
+                                <div class="inspect-actions" v-if="status.stationIdentifier">
+                                <v-card-text v-if="!status.datasetPlugin">
+                                <v-chip color="#EED202" text-color="black">Station identifier is optional.</v-chip>
+                            </v-card-text>
+                            <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue" :key="stationKey"/>                                      
+                              </div>
+                            <v-checkbox v-if="!status.datasetPlugin" v-model="status.stationIdentifier" label="Station identifier will be provided." color="#" hide-details></v-checkbox>
+                            </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="3">
                         <v-card>
@@ -72,9 +84,7 @@
                               variant="outlined">
                             </v-text-field>
                             </v-card-text>
-                            <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue"/>
-                            <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
-                                :teleport="true" :enable-time-picker="true" format="yyyy-MM-dd HH:mm" auto-apply/>
+                            
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
@@ -216,7 +226,7 @@
 </template>
 
 <script>
-    import { defineComponent, ref, onMounted, watch, computed} from 'vue';
+    import { defineComponent, nextTick, ref, onMounted, watch, computed} from 'vue';
     import { VFileInput, VCardActions, VBtn, VCard, VCardText, VCardItem, VChip, VTooltip } from 'vuetify/lib/components/index.mjs';
     import { VList, VListItem, VContainer, VCardTitle, VIcon, VDialog} from 'vuetify/lib/components/index.mjs';
     import { VDataTable} from 'vuetify/lib/components/index.mjs';
@@ -234,7 +244,7 @@
             VStepperActions, VDialog, InspectBufrButton, DownloadButton,
             DatasetIdentifierSelector, StationIdentifierSelector
         },
-
+        
         setup() {
             // reactive variables
             const theData = ref(null);
@@ -246,9 +256,10 @@
                 fileLoaded: false,
                 fileSized:false,
                 datasetPlugin: true,
+                datasetLoad: true,
                 fileValidated: false,
                 datasetIdentifier: false,
-                stationIdentifier: false,
+                stationIdentifier: true,
                 password: false
             });
             // Variable to control whether token is seen or not
@@ -264,7 +275,14 @@
             const scrollRef = ref(null);
             const result = ref(null);
             const notificationsOnPending = ref(false);
+            
+            // Keys tp force reload components
+            let stationKey = 0;
+            let datasetKey = 0;
 
+            //constants
+            const startTime = ref({ hours: 0, minutes: 0 });
+            
             // computed properties
 
             
@@ -314,6 +332,17 @@
             onMounted( () => {
                 setTimeout(scrollToRef(200));
             });
+
+            const forceDatasetSelectorRerender = async () => {
+              // Remove DatasetSelector from the DOM
+              status.value.datasetLoad = false;
+
+                // Wait for the change to get flushed to the DOM
+                await nextTick();
+
+                // Add the component back in
+              status.value.datasetLoad = true;
+            };
 
             const scrollToRef = () => {
               if (scrollRef.value) {
@@ -367,11 +396,14 @@
                         metadata_id: datasetSelected.value.metadata.id,
                         notify: notificationsOnPending.value,
                         filename: incomingFile.value.name,
-                        datetime: date.value.toISOString(),
-                        wigos_station_identifier: stationSelected.value.id,
+                        datetime: date.value,
+                        wigos_station_identifier: stationSelected.value,
                         is_binary: true
                     }
                 };
+                if( !(stationSelected.value === null)){
+                  payload.inputs.wigos_station_identifier = stationSelected.value.id;
+                }
             }
               else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
               {
@@ -440,7 +472,23 @@
               }
             }
             const prev = () => {
-                step.value = step.value === 0 ? 0 : step.value - 1;
+                switch (step.value){
+                  // case 1:
+                  //   incomingFile.value = null;
+                  //   rawData.value = null;
+                  //   status.value.fileLoaded = false;
+                  //   status.value.fileSized = false;
+                  case 2:
+                    datasetSelected.value = null;
+                    stationSelected.value = null;
+                    stationKey += 1
+                    plugin.value = null;
+                    date.value = null;
+                    status.value.datasetIdentifier = false;
+                    status.value.datasetPlugin = true;
+                    forceDatasetSelectorRerender();
+                 }
+                 step.value = step.value === 0 ? 0 : step.value - 1;
             };
             const next = () => {
                 let proceed = false;
@@ -452,6 +500,14 @@
                         msg.value = "File size must be less than 1MB";
                       }
                       else{
+                      datasetSelected.value = null;
+                      stationSelected.value = null;
+                      stationKey += 1
+                      plugin.value = null;
+                      date.value = null;
+                      status.value.datasetIdentifier = false;
+                      status.value.datasetPlugin = true;
+                      forceDatasetSelectorRerender();
                       proceed = true;
                       loadData()}
                     }else{
@@ -463,7 +519,17 @@
                   case 1:
                     if( status.value.datasetIdentifier ){
                       if(!status.value.datasetPlugin){
-                      proceed = true;
+                        if(!status.value.stationIdentifier)
+                      {
+                        stationSelected.value = null;
+                      }
+                        if(date.value === null){
+                          showDialog.value = true;
+                          msg.value = "Please enter the required observation date before proceeding.";
+                        }
+                        else{
+                          proceed = true;
+                        }   
                     }
                     else{
                       let filetype = incomingFile.value.name.split('.').pop();
@@ -500,15 +566,15 @@
                     }
                     else{
                       showDialog.value = true;
-                      msg.value = "Please select a dataset to publish on before proceeding";
+                      msg.value = "Please select a dataset to publish on before proceeding.";
                     }
                     break;
                   case 2:
                     
                     if(!status.value.datasetPlugin ){
-                      if( !status.value.password || date.value === null || stationSelected.value === null ){
+                      if( !status.value.password  ){
                         showDialog.value = true;
-                        msg.value = "Please enter the authorization token, observation date and station identifier before proceeding";
+                        msg.value = "Please enter the authorization token before proceeding.";
                       }
                       else{
                         plugin.value = {
@@ -527,7 +593,7 @@
                     }    
                     else{
                       showDialog.value = true;
-                      msg.value = "Please enter the authorization token before proceeding";
+                      msg.value = "Please enter the authorization token before proceeding.";
                     }}
                     break;
                 }
@@ -539,10 +605,6 @@
             // Watchers
             watch( datasetSelected, (val) => {
               status.value.datasetIdentifier = !!val;
-            });
-
-            watch( stationSelected, (val) => {
-              status.value.stationIdentifier = !!val;
             });
 
             watch( incomingFile, (val) => {
@@ -558,7 +620,7 @@
               }
             });
 
-            return {theData, headers, incomingFile, date, loadData, step, prev, next, scrollToRef,
+            return {theData, headers, incomingFile, startTime, date, loadData, step, prev, next, scrollToRef,
                      status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
                     datasetSelected, stationSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
