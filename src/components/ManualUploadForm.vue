@@ -1,6 +1,6 @@
 <template>
         <v-container class="max-form-width">
-          <v-card-title class="big-title">Manual Data File Upload</v-card-title>
+          <v-card-title class="big-title">Upload file for publication</v-card-title>
             <v-dialog v-model="showDialog" width="auto">
               <v-card>
                 <v-card-text>{{msg}}</v-card-text>
