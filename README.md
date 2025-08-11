@@ -10,7 +10,8 @@ The wis2box Web App is a Vue.js application that allows you to publish, edit, an
 ## Features
 
 - **Modern Interface**: Easily navigate the wis2box tools with a user-friendly interface built with <a href="https://vuetifyjs.com/en/">Vuetify 3</a>.
-- **Data Conversion:** Convert your SYNOP or CSV data to the WMO BUFR format and publish in one click.
+- **SYNOP FM-12 form submission:** Use a form to submit your SYNOP FM-12 and convert to the WMO BUFR format and publish in one click.
+- **File Upload:** Manually Upload files to be published by your WIS2 node.
 - **Station Editor:** View, edit, or create new station metadata.
 - **Dataset Editor:** Edit or create a new dataset and its associated data plugins.
 - **Monitoring:** Visualize and inspect the frequency and origin of the latest data published on your datasets.

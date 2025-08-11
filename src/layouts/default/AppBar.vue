@@ -20,6 +20,8 @@
 
       <v-list-item prepend-icon="mdi-card-text" title="SYNOP Form" exact to="/synop2bufr" />
 
+      <v-list-item prepend-icon="mdi-file-excel" title="Upload file" exact to="/manual_upload" />
+
       <v-list-item prepend-icon="mdi-file-document" title="Dataset Editor" exact to="/dataset_editor" />
 
       <v-list-item prepend-icon="mdi-satellite-uplink" title="Stations" exact to="/station" />

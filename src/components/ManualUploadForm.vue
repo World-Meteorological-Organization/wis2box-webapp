@@ -1,6 +1,6 @@
 <template>
         <v-container class="max-form-width">
-          <v-card-title class="big-title">Submit CSV Data</v-card-title>
+          <v-card-title class="big-title">Upload file for publication</v-card-title>
             <v-dialog v-model="showDialog" width="auto">
               <v-card>
                 <v-card-text>{{msg}}</v-card-text>
@@ -10,8 +10,7 @@
               </v-card>
             </v-dialog>
             <v-card-text>
-              See the <a href="https://docs.wis2box.wis.wmo.int/en/latest/user/data-ingest.html#wis2box-webapp">
-              WIS2box documentation</a> for information on CSV formatted data
+              
             </v-card-text>
             <v-stepper show-actions v-model="step">
                 <v-stepper-header>
@@ -21,25 +20,19 @@
                         value="1" :color="step1Color">
                     </v-stepper-item>
                     <v-stepper-item
-                        :complete="status.fileValidated"
-                        :error="validationErrors.length>0"
-                        title="Preview / validate"
-                        value="2" :color="step2Color">
-                    </v-stepper-item>
-                    <v-stepper-item
                         :complete="status.datasetIdentifier"
                         title="Select dataset"
-                        value="3" :color="step3Color">
+                        value="2" :color="step2Color">
                     </v-stepper-item>
                     <v-stepper-item
                         :complete="status.password"
                         title="Authorize / publish"
-                        value="4" :color="step4Color">
+                        value="3" :color="step3Color">
                     </v-stepper-item>
                     <v-stepper-item
-                        :complete="step5Complete"
+                        :complete="step4Complete"
                         title="Review"
-                        value="5" :color="step5Color">
+                        value="4" :color="step4Color">
                     </v-stepper-item>
                 </v-stepper-header>
                 <v-stepper-window>
@@ -47,66 +40,39 @@
                         <v-card width="100%">
                             <v-card-title>Load data</v-card-title>
                             <v-card-text>
-                                <v-file-input label="Select CSV file to upload" accept=".csv" v-model="incomingFile" variant="outlined"/>
+                                <v-file-input :rules="fileInputRules" label="Select file to upload" show-size v-model="incomingFile" variant="outlined"/>
                             </v-card-text>
                         </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="2">
                         <v-card>
-                            <v-card-title>Preview</v-card-title>
-                            <v-card-item>
-                                <div v-if="theData">
-                                    <v-data-table :items="theData" :headers="headers" class="elevation-1">
-                                        <template v-slot:item="{item}">
-                                            <tr>
-                                                <td v-for="(value, key) in item" :key="key">
-                                                    <v-tooltip
-                                                        v-if="item[key].msg !== ''"
-                                                        :text="item[key].msg">
-                                                        <template v-slot:activator="{ props }">
-                                                            <v-chip :color="item[key].status" v-bind="props">
-                                                                {{item[key].value}}
-                                                            </v-chip>
-                                                        </template>
-                                                    </v-tooltip>
-                                                    <v-chip v-else :color="item[key].status">
-                                                        {{item[key].value}}
-                                                    </v-chip>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </v-data-table>
-                                </div>
-                            </v-card-item>
-                            <v-card-item>
-                                <v-list v-if="validationWarnings.length > 0">
-                                    <v-list-item v-for="message in validationWarnings" :key="message" base-color="warning">
-                                        <template v-slot:prepend>
-                                            <v-icon icon="mdi-alert-circle"></v-icon>
-                                        </template>
-                                        {{ message }}
-                                    </v-list-item>
-                                </v-list>
-                                <v-list v-if="validationErrors.length > 0">
-                                    <v-list-item v-for="message in validationErrors" :key="message" base-color="error">
-                                        <template v-slot:prepend>
-                                            <v-icon icon="mdi-alert-circle"></v-icon>
-                                        </template>
-                                        {{ message }}
-                                    </v-list-item>
-                                </v-list>
-                            </v-card-item>
-                        </v-card>
-                    </v-stepper-window-item>
-                    <v-stepper-window-item value="3">
-                        <v-card>
                             <v-card-title>Select dataset identifier</v-card-title>
                             <v-col cols="12">
-                                <DatasetIdentifierSelector :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue"/>
+                                <DatasetIdentifierSelector v-if="status.datasetLoad" :value="datasetSelected" @update:modelValue="newValue => datasetSelected = newValue" :key="datasetKey"/>
                             </v-col>
-                        </v-card>
+                            <v-checkbox v-model="status.datasetPlugin" label="Use dataset mappings" color="#" hide-details></v-checkbox>
+                            <v-card-text v-if="!status.datasetPlugin">
+                                <v-chip color="#64BF40" text-color="white">Universal plugin selected</v-chip>
+                                <p>This form will use the universal plugin, uploading the file without data transformation. Please provide additional information required by the notification.</p>
+                            </v-card-text>
+                            <v-card-text v-if="status.datasetPlugin">
+                                <v-chip color="#64BF40" text-color="white">Dataset mappings selected</v-chip>
+                                <p>This form will use the pre-configured dataset mappings, uploading the file with data transformation from CSV or BUFR.</p>
+                            </v-card-text>
+                            <v-card-text v-if="!status.datasetPlugin">
+                                <v-chip color="#A52A2A" text-color="black">Date is required.</v-chip>
+                            </v-card-text>
+                            <VueDatePicker v-if="!status.datasetPlugin" placeholder="Select Data Production Date in UTC" v-model="date"
+                                :teleport="true" :start-time="startTime" time-picker-inline format="yyyy-MM-dd HH:mm" utc="preserve"/>
+                                <div class="inspect-actions" v-if="status.stationIdentifier">
+                                <v-card-text v-if="!status.datasetPlugin">
+                            </v-card-text>
+                            <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue" :key="stationKey"/>                                      
+                              </div>
+                            <v-checkbox v-if="!status.datasetPlugin" v-model="status.stationIdentifier" label="Add station identifier" color="#" hide-details></v-checkbox>
+                            </v-card>
                     </v-stepper-window-item>
-                    <v-stepper-window-item value="4">
+                    <v-stepper-window-item value="3">
                         <v-card>
                             <v-card-title>Authorize and publish</v-card-title>
                             <v-card-text>
@@ -117,11 +83,12 @@
                               variant="outlined">
                             </v-text-field>
                             </v-card-text>
+                            
                             <v-checkbox v-model="notificationsOnPending" label="Publish on WIS2" color="#" hide-details></v-checkbox>
                             <v-card-item v-if="token">Click next to submit the data</v-card-item>
                         </v-card>
                     </v-stepper-window-item>
-                    <v-stepper-window-item value="5">
+                    <v-stepper-window-item value="4">
                       <v-row class="justify-center">
                         <v-col cols="12">
                           <!-- Output data -->
@@ -193,7 +160,7 @@
                                       <v-icon color="#00BD9D"></v-icon>
                                     </template>
                                     <!-- If number of BUFR files > 0, set text to green -->
-                                    <span :style="{ color: '#00BD9D' }">Output BUFR files: {{ result.files.length }}</span>
+                                    <span :style="{ color: '#00BD9D' }">Output files: {{ result.files.length }}</span>
                                   </v-list-item>
 
                                 </template>
@@ -206,22 +173,30 @@
                                       <div class="hidden-md-and-down">
                                         <div class="file-actions" v-if="data_item.file_url">
                                           <DownloadButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="true" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="true" />
+                                          </div>
                                         </div>
                                         <div class="file-actions" v-if="data_item.data">
                                           <DownloadButton :fileName="data_item.filename" :data="data_item.data" :block="true" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :data="data_item.data" :block="true" />
+                                            </div>
                                         </div>
                                       </div>
                                       <!-- For narrow windows, make buttons less wide -->
                                       <div class="hidden-lg-and-up">
                                         <div class="file-actions" v-if="data_item.file_url">
                                           <DownloadButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="false" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :fileUrl="data_item.file_url" :block="false" />
+                                          </div>
                                         </div>
                                         <div class="file-actions" v-if="data_item.data">
                                           <DownloadButton :fileName="data_item.filename" :data="data_item.data" :block="false" />
+                                          <div class="inspect-actions" v-if="status.datasetPlugin">
                                           <InspectBufrButton :fileName="data_item.filename" :data="data_item.data" :block="false" />
+                                          </div>
                                         </div>
                                       </div>
                                   </div>
@@ -231,7 +206,7 @@
 
                               <!-- BUFR files drop-down if there are no warnings -->
                               <v-list-item v-else prepend-icon="mdi-check-circle">
-                                <span>Output BUFR files: 0</span>
+                                <span>Output files: 0</span>
                               </v-list-item>
 
                             </v-list>
@@ -250,7 +225,7 @@
 </template>
 
 <script>
-    import { defineComponent, ref, onMounted, watch, computed} from 'vue';
+    import { defineComponent, nextTick, ref, onMounted, watch, computed} from 'vue';
     import { VFileInput, VCardActions, VBtn, VCard, VCardText, VCardItem, VChip, VTooltip } from 'vuetify/lib/components/index.mjs';
     import { VList, VListItem, VContainer, VCardTitle, VIcon, VDialog} from 'vuetify/lib/components/index.mjs';
     import { VDataTable} from 'vuetify/lib/components/index.mjs';
@@ -258,43 +233,59 @@
     import InspectBufrButton from '@/components/InspectBufrButton.vue';
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
-    import * as d3 from 'd3';
+    import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
+
     export default defineComponent({
-        name: 'CsvToBUFRForm',
+        name: 'ManualUploadForm',
         components: {
             VFileInput, VCardActions, VBtn, VCard, VCardText, VCardItem, VDataTable,
             VChip, VTooltip, VListItem, VList, VContainer,
             VCardTitle, VIcon, VStepper, VStepperHeader, VStepperItem, VStepperWindow, VStepperWindowItem,
             VStepperActions, VDialog, InspectBufrButton, DownloadButton,
-            DatasetIdentifierSelector
+            DatasetIdentifierSelector, StationIdentifierSelector
         },
+        
         setup() {
             // reactive variables
             const theData = ref(null);
             const headers = ref(null);
             const incomingFile = ref(null);
-            const schema = ref(null);
             const step=ref(0);
-            const validationWarnings = ref([]);
-            const validationErrors = ref([]);
+
             const status = ref({
                 fileLoaded: false,
+                fileSized:false,
+                datasetPlugin: true,
+                datasetLoad: true,
                 fileValidated: false,
                 datasetIdentifier: false,
+                stationIdentifier: true,
                 password: false
             });
             // Variable to control whether token is seen or not
             const showToken = ref(false);
             const token = ref(null);
             const datasetSelected = ref(null);
-            const rawCSV = ref(null);
+            const stationSelected = ref(null);
+            const rawData = ref(null);
+            const plugin = ref(null);
+            const date = ref(null);
             const msg = ref(null);
             const showDialog = ref(null);
             const scrollRef = ref(null);
             const result = ref(null);
             const notificationsOnPending = ref(false);
+            
+            // Keys tp force reload components
+            let stationKey = 0;
+            let datasetKey = 0;
 
+            //constants
+            const startTime = ref({ hours: 0, minutes: 0 });
+            
             // computed properties
+
+            
 
             const step1Color = computed(() => {
                 if (status.value.fileLoaded) {
@@ -303,31 +294,22 @@
                 return "#003DA5"
             })
             const step2Color = computed(() => {
-                if (status.value.fileValidated) {
-                    return "#64BF40"
-                }
-                else if (validationErrors.value.length > 0) {
-                    return "error"
-                }
-                return "#003DA5"
-            })
-            const step3Color = computed(() => {
                 if (status.value.datasetIdentifier) {
                     return "#64BF40"
                 }
                 return "#003DA5"
             })
-            const step4Color = computed(() => {
+            const step3Color = computed(() => {
                 if (status.value.password) {
                     return "#64BF40"
                 }
                 return "#003DA5"
             })
-            const step5Complete = computed(() => {
-                return status.value.fileLoaded && status.value.fileValidated && status.value.datasetIdentifier && status.value.password && status.value.submitted;
+            const step4Complete = computed(() => {
+                return status.value.fileLoaded && status.value.datasetIdentifier && status.value.password && status.value.submitted;
             })
-            const step5Color = computed(() => {
-                if (step5Complete.value) {
+            const step4Color = computed(() => {
+                if (step4Complete.value) {
                     return "#64BF40"
                 }
                 return "#003DA5"
@@ -351,126 +333,99 @@
                 setTimeout(scrollToRef(200));
             });
 
+            const forceDatasetSelectorRerender = async () => {
+              // Remove DatasetSelector from the DOM
+              status.value.datasetLoad = false;
+
+                // Wait for the change to get flushed to the DOM
+                await nextTick();
+
+                // Add the component back in
+              status.value.datasetLoad = true;
+            };
+
             const scrollToRef = () => {
               if (scrollRef.value) {
                 scrollRef.value.scrollIntoView({ behavior: 'smooth' });
               }
             };
 
-            const loadCSV = async() => {
+            const loadData = async() => {
                 if( incomingFile.value ){
-                    // load schema
-                    await fetch("./csv2bufr/csvw_schema.json").then( (response) => response.json() ).then( (theData) => {schema.value = theData.tableSchema.columns});
                     // now load the data file
                     let reader = new FileReader();
-                    reader.readAsText(incomingFile.value);
+                    
+                    reader.readAsArrayBuffer(incomingFile.value);
                     reader.onload = async () => {
-                        validationErrors.value = [];
-                        validationWarnings.value = [];
-                        // load the data
-                        rawCSV.value = reader.result;
-                        theData.value = await d3.csvParse(reader.result, d3.autoType);
-                        // create header object for table
-                        headers.value = Object.keys(theData.value[0]).map( key => ({
-                            title: key,
-                            value: key,
-                            key: key,
-                            sortable: true,
-                            divider: true
-                        }));
-                        // check the headers against the schema
-                        for(let column in headers.value ){
-                            let key = headers.value[column].key
-                            let schemaColumn = schema.value.find( col => col.titles === key )
-                            if( ! schemaColumn ){
-                                validationWarnings.value.push("Column '" + key +
-                                    "' not found in schema, data will be skipped")
-                                headers.value[column].dataType = {base: null, minimum: null, maximum: null};
-                                headers.value[column].inSchema = false;
-                            }else{
-                                headers.value[column].dataType = schemaColumn.datatype;
-                                headers.value[column].inSchema = true;
-                                schemaColumn.present = true;
-                            }
-                        }
-                        for(let col in schema.value){
-                            if(!schema.value[col].present){
-                                let key = schema.value[col].titles;
-                                validationWarnings.value.push("Column '" + key +
-                                    "' missing from data file, data will be set to missing in BUFR encoding");
-                            }
-                        }
-                        // now validate the data
-                        let count = 0;
-                        for(const record of theData.value){
-                            count++;
-                            for( const key in record){
-                                let header = headers.value.find(header => header.key === key );
-                                let value = record[key];
-                                record[key] = {
-                                    value: value,
-                                    status: "",
-                                    msg: ""
-                                }
-                                let valid_min = false;
-                                let valid_max = false;
-                                let msg = "";
-                                let status = "success";
-                                if( header.inSchema ){
-                                    if( header.dataType.minimum ){
-                                        valid_min = header.dataType.minimum
-                                    }
-                                    if( value && valid_min && (value < valid_min)){
-                                        msg = "Line " + count + ": Column '" +
-                                            key + "' out of range, value (" + value + ") < valid min (" +
-                                            valid_min + ")";
-                                        status = 'error';
-                                        validationErrors.value.push(msg);
-                                    }
-                                    if( header.dataType.maximum ){
-                                        valid_max = header.dataType.maximum
-                                    }
-                                    if( value && valid_max && (value > valid_max)){
-                                        msg = "Line " + count + ": Column '" + key +
-                                            "' out of range, value (" + value + ") > valid max (" + valid_max + ")";
-                                        status = 'error';
-                                        validationErrors.value.push(msg);
-                                    }
-                                }else{
-                                    status = "warning";
-                                    msg = "Field not in schema";
-                                }
-                                if(((! value) && (value!==0)) | ( value === 'null')){  // this is horrible, there must be a better way
-                                    msg = "Line " + count + ": Column '" + key + "' contains missing data";
-                                    status = "warning"
-                                    validationWarnings.value.push(msg);
-                                }
-                                record[key].status = status;
-                                record[key].msg = msg;
-                            }
-                        }
-                        // get limits and kind from schema
+                        // load the data                        
+                        rawData.value = reader.result;
+
                     };
-                    step.value = 1;
+
                 }
             };
             const submit = async() => {
-                CsvToBUFR();
+                FileUpload();
                 status.value.submitted = true;
             };
-            const CsvToBUFR = async() => {
-              const payload = {
+            function _arrayBufferToBase64( buffer ) {
+              var binary = '';
+              var bytes = new Uint8Array( buffer );
+              var len = bytes.byteLength;
+              for (var i = 0; i < len; i++) {
+                  binary += String.fromCharCode( bytes[ i ] );
+              }
+              return window.btoa( binary );
+          }
+            const FileUpload = async() => {
+              
+              let payload = {
+                    inputs: {
+                        data: _arrayBufferToBase64(rawData.value),
+                        channel: datasetSelected.value.metadata.topic,
+                        metadata_id: datasetSelected.value.metadata.id,
+                        notify: notificationsOnPending.value,
+  
+                    }
+                };
+              if(plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
+                payload = {
+                    inputs: {
+                        data: _arrayBufferToBase64(rawData.value),
+                        channel: datasetSelected.value.metadata.topic,
+                        metadata_id: datasetSelected.value.metadata.id,
+                        notify: notificationsOnPending.value,
+                        filename: incomingFile.value.name,
+                        datetime: date.value,
+                        is_binary: true
+                    }
+                };
+                if( !(stationSelected.value === null)){
+                  payload.inputs.wigos_station_identifier = stationSelected.value.id;
+                }
+            }
+              else if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR")
+              {
+                payload = {
                   inputs: {
-                      data: rawCSV.value,
+                      data: new TextDecoder().decode(rawData.value),
                       channel: datasetSelected.value.metadata.topic,
                       metadata_id: datasetSelected.value.metadata.id,
                       notify: notificationsOnPending.value,
-                      template: "aws-template"
+                      template: plugin.value["template"],
                   }
-              };
-              const apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-csv2bufr/execution`;
-
-              const response = await fetch(apiURL, {
+                };
+              }
+              
+            let apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-bufr2bufr/execution`;
+              if(plugin.value["plugin"] === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR") {
+                apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-csv2bufr/execution`;
+              }
+              else if (plugin.value["plugin"] === "wis2box.data.universal_data.UniversalData"){
+                apiURL = `${import.meta.env.VITE_API_URL}/processes/wis2box-publish_data/execution`;
+              }
+              
+                const response = await fetch(apiURL, {
                 method: 'POST',
                 headers: {
                     'encode': 'json',
@@ -479,6 +434,9 @@
                 },
                 body: JSON.stringify(payload)
               });
+              // showDialog.value = true;
+              // msg.value = JSON.stringify(payload);
+
               if (!response.ok) {
                 if (response.status == 401) {
                   msg.value = "Unauthorized, please provide a valid 'processes/wis2box' token"
@@ -493,6 +451,7 @@
                   msg.value = "API Error, please check the console";
                   console.error('HTTP error', response.status);
                 }
+                
                 showDialog.value = true;
                 result.value = {
                   "result": "API error",
@@ -500,7 +459,9 @@
                     apiURL + " returned " + response.status
                   ]
                 };
+                
               } else {
+                
                 const data = await response.json();
                 result.value = data;
                 result.value.files = [];
@@ -510,50 +471,133 @@
               }
             }
             const prev = () => {
-                step.value = step.value === 0 ? 0 : step.value - 1;
+                switch (step.value){
+                  // case 1:
+                  //   incomingFile.value = null;
+                  //   rawData.value = null;
+                  //   status.value.fileLoaded = false;
+                  //   status.value.fileSized = false;
+                  case 2:
+                    datasetSelected.value = null;
+                    stationSelected.value = null;
+                    stationKey += 1
+                    plugin.value = null;
+                    date.value = null;
+                    status.value.datasetIdentifier = false;
+                    status.value.datasetPlugin = true;
+                    forceDatasetSelectorRerender();
+                 }
+                 step.value = step.value === 0 ? 0 : step.value - 1;
             };
             const next = () => {
                 let proceed = false;
                 switch (step.value){
                   case 0:
                     if( status.value.fileLoaded){
+                      if( !status.value.fileSized ){
+                        showDialog.value = true;
+                        msg.value = "File size must be less than 1MB";
+                      }
+                      else{
+                      datasetSelected.value = null;
+                      stationSelected.value = null;
+                      stationKey += 1
+                      plugin.value = null;
+                      date.value = null;
+                      status.value.datasetIdentifier = false;
+                      status.value.datasetPlugin = true;
+                      forceDatasetSelectorRerender();
                       proceed = true;
-                      loadCSV()
+                      loadData()}
                     }else{
                       showDialog.value = true;
                       msg.value = "Please select or drag and drop a file to upload";
                     }
                     break;
+
                   case 1:
-                    if( validationErrors.value.length === 0 ){
-                      proceed = true;
-                      status.value.fileValidated = true;
-                    }else{
+                    if( status.value.datasetIdentifier ){
+                      if(!status.value.datasetPlugin){
+                        if(!status.value.stationIdentifier)
+                      {
+                        stationSelected.value = null;
+                      }
+                        if(date.value === null){
+                          showDialog.value = true;
+                          msg.value = "Please enter the required observation date before proceeding.";
+                        }
+                        else{
+                          proceed = true;
+                        }   
+                    }
+                    else{
+                      let filetype = incomingFile.value.name.split('.').pop();
+                      let keys="";
+                      let foundMapping = false;
+                      for ( let map in datasetSelected.value.mappings ){
+                        
+                        keys += map + ", ";
+                        
+                        if(map === filetype)
+                      {
+                          foundMapping = true;
+                          if( datasetSelected.value.mappings[map][0].plugin === "wis2box.data.csv2bufr.ObservationDataCSV2BUFR" || datasetSelected.value.mappings[map][0].plugin === "wis2box.data.bufr4.ObservationDataBUFR" ){
+                            plugin.value = datasetSelected.value.mappings[map][0];   
+                            proceed = true;
+                          }
+                          else if( datasetSelected.value.mappings[map][0].plugin === "wis2box.data.synop2bufr.ObservationDataSYNOP2BUFR" ){
+                            showDialog.value = true;
+                            msg.value = "File type " + filetype + " uses a mapping from SYNOP to BUFR, please use the 'SYNOP to BUFR' form instead.";
+                          }
+                          else{
+                            showDialog.value = true;
+                            msg.value = "File type " + filetype + " does not have a mapping from CSV or BUFR.";
+                          }
+                          
+                        }
+                      }
+                      if( !foundMapping ){
+                        showDialog.value = true;
+                        msg.value = "No mapping found for file type " + filetype + " in the following keys: " + keys.slice(0, -2);
+                      }
+                    }
+
+                    }
+                    else{
                       showDialog.value = true;
-                      status.value.fileValidated = false;
-                      msg.value = "Please fix validation errors before proceeding";
+                      msg.value = "Please select a dataset to publish on before proceeding.";
                     }
                     break;
                   case 2:
-                    if( status.value.datasetIdentifier ){
-                      proceed = true;
-                    }else{
-                      showDialog.value = true;
-                      msg.value = "Please select a dataset to publish on before proceeding";
+                    
+                    if(!status.value.datasetPlugin ){
+                      if( !status.value.password  ){
+                        showDialog.value = true;
+                        msg.value = "Please enter the authorization token before proceeding.";
+                      }
+                      else{
+                        plugin.value = {
+                          plugin: "wis2box.data.universal_data.UniversalData",
+                          key: "universal_data",
+                          
+                        };
+                        submit();
+                        proceed = true;
+                      }
                     }
-                    break;
-                  case 3:
-                    if( status.value.password ){
-                      proceed = true;
-                      submit();
-                    }else{
+                    else{
+                      if( status.value.password ){
+                        submit();
+                        proceed = true;                     
+                    }    
+                    else{
                       showDialog.value = true;
-                      msg.value = "Please enter the authorization token before proceeding";
-                    }
+                      msg.value = "Please enter the authorization token before proceeding.";
+                    }}
                     break;
                 }
                 if( proceed ){
-                  step.value = step.value === 4 ? 4 : step.value + 1;
+                  step.value = step.value === 3 ? 3 : step.value + 1;
                 }
             };
 
@@ -564,14 +608,7 @@
 
             watch( incomingFile, (val) => {
               status.value.fileLoaded = !!val;
-            });
-
-            watch( validationErrors, (val) => {
-              if( val && val.length > 0 ){
-                status.value.fileValidated = false;
-              }else{
-                status.value.fileValidated = true;
-              }
+              status.value.fileSized = val.size < 1024*1024;
             });
 
             watch( token, () => {
@@ -582,9 +619,9 @@
               }
             });
 
-            return {theData, headers, incomingFile, loadCSV, step, prev, next, scrollToRef,
-                    validationWarnings, validationErrors, status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Color, step5Complete, step5Color,
-                    datasetSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
+            return {theData, headers, incomingFile, startTime, date, loadData, step, prev, next, scrollToRef,
+                     status, showToken, token, notificationsOnPending, step1Color, step2Color, step3Color, step4Complete, step4Color,
+                    datasetSelected, stationSelected, submit, msg, showDialog, result, resultTitle, numberNotifications};
         },
     })
 </script>
