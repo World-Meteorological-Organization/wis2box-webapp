@@ -234,7 +234,7 @@
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
-import { FALSE } from 'sass';
+
     export default defineComponent({
         name: 'ManualUploadForm',
         components: {
@@ -259,7 +259,7 @@ import { FALSE } from 'sass';
                 datasetLoad: true,
                 fileValidated: false,
                 datasetIdentifier: false,
-                stationIdentifier: false,
+                stationIdentifier: true,
                 password: false
             });
             // Variable to control whether token is seen or not
