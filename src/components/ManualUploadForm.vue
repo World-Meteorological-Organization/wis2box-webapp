@@ -66,11 +66,10 @@
                                 :teleport="true" :start-time="startTime" time-picker-inline format="yyyy-MM-dd HH:mm" utc="preserve"/>
                                 <div class="inspect-actions" v-if="status.stationIdentifier">
                                 <v-card-text v-if="!status.datasetPlugin">
-                                <v-chip color="#EED202" text-color="black">Station identifier is optional.</v-chip>
                             </v-card-text>
                             <StationIdentifierSelector v-if="!status.datasetPlugin" :value="stationSelected" @update:modelValue="newValue => stationSelected = newValue" :key="stationKey"/>                                      
                               </div>
-                            <v-checkbox v-if="!status.datasetPlugin" v-model="status.stationIdentifier" label="Station identifier will be provided." color="#" hide-details></v-checkbox>
+                            <v-checkbox v-if="!status.datasetPlugin" v-model="status.stationIdentifier" label="Add station identifier" color="#" hide-details></v-checkbox>
                             </v-card>
                     </v-stepper-window-item>
                     <v-stepper-window-item value="3">
@@ -235,6 +234,7 @@
     import DownloadButton from '@/components/DownloadButton.vue';
     import DatasetIdentifierSelector from '@/components/DatasetIdentifierSelector.vue';
     import StationIdentifierSelector from '@/components/StationIdentifierSelector.vue';
+import { FALSE } from 'sass';
     export default defineComponent({
         name: 'ManualUploadForm',
         components: {
@@ -259,7 +259,7 @@
                 datasetLoad: true,
                 fileValidated: false,
                 datasetIdentifier: false,
-                stationIdentifier: true,
+                stationIdentifier: false,
                 password: false
             });
             // Variable to control whether token is seen or not
@@ -397,7 +397,6 @@
                         notify: notificationsOnPending.value,
                         filename: incomingFile.value.name,
                         datetime: date.value,
-                        wigos_station_identifier: stationSelected.value,
                         is_binary: true
                     }
                 };
