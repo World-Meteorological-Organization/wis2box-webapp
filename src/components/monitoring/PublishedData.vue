@@ -31,7 +31,7 @@
             </v-col>
 
             <v-col cols="3">
-              <InspectBufrButton v-if="file.type === 'application/bufr'" :fileName="getFileName(file.url)"
+                <InspectBufrButton v-if="file.type === 'application/bufr' && file.size < 1000" :fileName="getFileName(file.url)"
                 :fileUrl="file.url" :block="true" />
               <InspectAlertButton v-if="fileIsCAP(file)" :fileUrl="file.url" :fileName="getFileName(file.url)" :block="true" />
             </v-col>

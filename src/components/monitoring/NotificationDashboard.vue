@@ -219,7 +219,8 @@ export default defineComponent({
             if (canonicalLink) {
                 return {
                     'url': canonicalLink.href,
-                    'type': canonicalLink.type
+                    'type': canonicalLink.type,
+                    'size': canonicalLink.length
                 };
             }
             return '';
@@ -232,6 +233,7 @@ export default defineComponent({
                 pubtime: new Date(item.properties.pubtime),
                 canonical_url: getCanonicalInfo(item.links).url,
                 type: getCanonicalInfo(item.links).type,
+                size: getCanonicalInfo(item.links).size,
                 wsi: item.properties.wigos_station_identifier,
                 coordinates: item.geometry?.coordinates ?? null // Geometry may not be present
             }));
