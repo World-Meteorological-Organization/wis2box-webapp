@@ -1621,9 +1621,9 @@
     "@type" : "skos:Concept",
     "dct:description" : {
       "@language" : "en",
-      "@value" : "Macedonia, the former Yugoslav Republic of"
+      "@value" : "Republic of North Macedonia"
     },
-    "rdfs:label" : "Macedonia, the former Yugoslav Republic of",
+    "rdfs:label" : "Republic of North Macedonia",
     "skos:notation" : "MKD"
   }, {
     "@id" : "http://codes.wmo.int/wmdr/TerritoryName/MLI",
