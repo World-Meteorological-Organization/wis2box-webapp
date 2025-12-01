@@ -55,11 +55,13 @@ export default defineComponent({
     // 'hack' to fix leaflet marker issue
     var mapMarker = new L.Icon({
       iconUrl: import.meta.env.VITE_BASE_URL + '/assets/marker-icon.png',
-      shadowUrl:  import.meta.env.VITE_BASE_URL + '/assets/marker-shadow.png'
+      shadowUrl: import.meta.env.VITE_BASE_URL + '/assets/marker-shadow.png',
+      iconAnchor: [12, 41], // Adjust the anchor point to bottom center
+      shadowAnchor: [12, 41] // Adjust the shadow anchor to match the icon
     });
 
     const addMarker = (feature, latlng) => {
-      return L.marker(latlng, {icon: mapMarker} )
+      return L.marker(latlng, {icon: mapMarker});
     };
 
     const geom = computed( () => ({

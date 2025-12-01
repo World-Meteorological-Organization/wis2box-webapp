@@ -104,7 +104,7 @@ export default defineComponent({
                 let coords = feature.geometry?.coordinates;
 
                 // Check if coordinates are defined before proceeding
-                if (!coords || coords.length !== 2) return;
+                if (!coords || coords.length < 2) return;
 
                 // Swap coordinates to [lat, lon] for Leaflet
                 coords = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
@@ -114,7 +114,8 @@ export default defineComponent({
                     icon: L.divIcon({
                         html: iconHtml,
                         className: 'customIcon',
-                        iconSize: L.point(30, 30)  // Set size sufficiently large to handle icon
+                        iconSize: L.point(20, 28),  // Set size sufficiently large to handle icon
+                        iconAnchor: [10, 28] // Adjust anchor so the tip of the icon is at the coordinates
                     })
                 });
                 // Define marker key (WSI, lat, lon)
