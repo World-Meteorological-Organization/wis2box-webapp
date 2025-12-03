@@ -43,6 +43,9 @@ fi
 set +e
 # run generate-topic-list.sh
 docker/generate-topic-list.sh /wis2box-webapp/public/other || echo "Topic list generation failed, continuing..."
+# HACK overwrite the generated file with a local copy to add hydrology topics
+cp docker/topics-dropdown-list.csv /wis2box-webapp/public/other/topics-dropdown-list.csv
+
 set -e
 
 npm run build
