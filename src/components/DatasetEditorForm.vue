@@ -1303,6 +1303,7 @@ export default defineComponent({
             localID.value = value
                 .trim()
                 .toLowerCase()
+                .replace(/:/g, '')
                 .replace(/\s+/g, '-');
             };
 
