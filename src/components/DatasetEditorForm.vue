@@ -1017,17 +1017,24 @@ export default defineComponent({
         const localID = ref('');
         const isEditing = computed(() => !isNew.value);
 
-        const extractLocalID = (identifier) => {
+        const extractLocalID = (identifier, centreID) => {
             if (!identifier) {
                 console.warn("Identifier is undefined or null");
                 return ""; // Fallback empty string
             }
-            const parts = identifier.split(":");
-            return parts[parts.length - 1] || "";
+            const prefix = `urn:wmo:md:${centreID}:`;
+            if (!identifier.startsWith(prefix)) {
+                console.warn(
+                    `Identifier "${identifier}" does not start with expected prefix "${prefix}".`
+                );
+                return "";
+            }
+            return identifier.slice(prefix.length);
         };
 
         const updateIdentifierFromLocalID = () => {
-            const baseIdentifier = model.value.identification.identifier.split(":").slice(0, -1).join(":");
+            const centreID = model.value.identification.centreID;
+            const baseIdentifier = `urn:wmo:md:${centreID}`;
             model.value.identification.identifier = `${baseIdentifier}:${localID.value}`;
             if (items.value.includes(model.value.identification.identifier)) {
                 message.value = "Identifier already exists. Please choose a different Local ID.";
@@ -1303,7 +1310,6 @@ export default defineComponent({
             localID.value = value
                 .trim()
                 .toLowerCase()
-                .replace(/:/g, '')
                 .replace(/\s+/g, '-');
             };
 
@@ -1553,7 +1559,10 @@ export default defineComponent({
                     const formModel = transformToForm(responseData);
                     // Update the form (model) with the loaded values
                     model.value = formModel;
-                    localID.value = extractLocalID(formModel.identification.identifier);
+                    localID.value = extractLocalID(
+                        formModel.identification.identifier,
+                        formModel.identification.centreID
+                    );
                     // Note: Set time delay to prevent watchers from firing too early
                     setTimeout(() => {
                         // Force bounding box map to update
@@ -1903,7 +1912,10 @@ export default defineComponent({
             }
             const randomCode = random6ASCIICharacters();
             model.value.identification.identifier = 'urn:wmo:md:' + model.value.identification.centreID + ':' + randomCode;
-            localID.value = extractLocalID(model.value.identification.identifier);
+            localID.value = extractLocalID(
+                model.value.identification.identifier,
+                model.value.identification.centreID
+            );
             // Converts the theme structure into a list of the theme labels
             model.value.identification.concepts = template.themes.flatMap(theme => theme.concepts.map(concept => concept.label));
             model.value.identification.conceptScheme = template.themes.map(theme => theme.scheme)[0];
@@ -1990,7 +2002,10 @@ export default defineComponent({
             let policy = model.value.identification.wmoDataPolicy;
             let centreID = model.value.identification.centreID;
             model.value.identification.identifier = 'urn:wmo:md:' + centreID + ':' + randomCode;
-            localID.value = extractLocalID(model.value.identification.identifier);
+            localID.value = extractLocalID(
+                model.value.identification.identifier,
+                centreID
+            );
             
             model.value.identification.topicHierarchy = centreID + '/data/' + policy + '/';
         }
