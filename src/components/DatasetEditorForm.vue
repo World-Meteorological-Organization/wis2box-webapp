@@ -1023,12 +1023,6 @@ export default defineComponent({
                 return ""; // Fallback empty string
             }
             const prefix = `urn:wmo:md:${centreID}:`;
-            if (!identifier.startsWith(prefix)) {
-                console.warn(
-                    `Identifier "${identifier}" does not start with expected prefix "${prefix}".`
-                );
-                return "";
-            }
             return identifier.slice(prefix.length);
         };
 
