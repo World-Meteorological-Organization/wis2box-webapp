@@ -856,9 +856,8 @@ weather/surface-based-observations/wind-profile
 weather/surface-based-observations/wind-profile-radar
 weather/surface-based-observations/wind-profile-ship
 hydrology/space-based-observations/soil
-hydrology/subsurface-based-observations/groundwater-quantity/aquifer
-hydrology/subsurface-based-observations/groundwater-quantity/well
-hydrology/subsurface-based-observations/soil
+hydrology/subsurface-based-observations/water-quantity/groundwater
+hydrology/subsurface-based-observations/water-quantity/soil
 hydrology/surface-based-observations/atmospheric/air
 hydrology/surface-based-observations/atmospheric/precipitation
 hydrology/surface-based-observations/atmospheric/wind
