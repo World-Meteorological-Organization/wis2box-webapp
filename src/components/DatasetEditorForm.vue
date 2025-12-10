@@ -506,7 +506,19 @@
                     </v-col>
                 </v-row>
             </v-card>
-
+            <!-- Toggle for cache = True/False -->
+            <v-card v-if="metadataLoaded && !isNonRealTime && model.identification.wmoDataPolicy === 'core'" class="mt-6 pa-3">
+                <v-card-text>
+                    <v-checkbox v-model="model.settings.cache"
+                        label="By default, core-data will be cached by the Global Cache. Uncheck this box to disable caching for this dataset."
+                        color="#003DA5"
+                        :true-value="true"
+                        :false-value="false" />
+                </v-card-text>
+                <v-card-subtitle v-if="!model.settings.cache">
+                    Data from this dataset will not be cached by the Global Cache. Please ensure your system can handle the expected data requests.
+                </v-card-subtitle>
+            </v-card>
             <!-- Authentication token section -->
             <v-card class="mt-16 pa-3" v-if="metadataLoaded">
                 <v-card-title>Authentication Token
@@ -1076,6 +1088,9 @@ export default defineComponent({
             host: {},
             plugins: [],
             links: [],
+            settings: {
+                cache: true
+            },
             license_link: `${import.meta.env.VITE_BASE_URL}/data/license.txt`
         };
 
@@ -1212,7 +1227,7 @@ export default defineComponent({
         const previousLinkURL = ref(null);
         const previousLinkRel = ref(null);
         // Metadata form to be filled
-        const model = ref({ 'identification': {}, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
+        const model = ref({ 'identification': {}, 'settings': { 'cache': true }, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
         // Execution token to be entered by user
         const token = ref(null);
         // Variable to control whether token is seen or not
@@ -1612,6 +1627,13 @@ export default defineComponent({
             else {
                 formModel.plugins = [];
                 isNonRealTime.value = true; // No plugins means it is a non-real-time dataset
+            }
+            // cache information
+            if (schema.wis2box["cache"]) {
+                formModel.settings.cache = schema.wis2box["cache"];
+            }
+            else {
+                formModel.settings.cache = true;
             }
 
             let license_link = null;
@@ -2362,12 +2384,14 @@ export default defineComponent({
             schemaModel.wis2box = {
                 "data_mappings": {},
                 "centre_id": form.identification.centreID,
-                "topic_hierarchy": null
+                "topic_hierarchy": null,
+                "cache": true
             };
             // topic_hierarchy and data_mappings are only added if the data is non-real-time
             if(isNonRealTime.value === false) {
                 schemaModel.wis2box["topic_hierarchy"] = formatWIS2TopicHierarchy(form.identification.topicHierarchy);
                 schemaModel.wis2box["data_mappings"] = untidyPluginsForSchema(form.plugins);
+                schemaModel.wis2box["cache"] = form.settings.cache;
             }
 
             // Time period information
