@@ -2384,14 +2384,16 @@ export default defineComponent({
             schemaModel.wis2box = {
                 "data_mappings": {},
                 "centre_id": form.identification.centreID,
-                "topic_hierarchy": null,
-                "cache": true
+                "topic_hierarchy": null
             };
             // topic_hierarchy and data_mappings are only added if the data is non-real-time
             if(isNonRealTime.value === false) {
                 schemaModel.wis2box["topic_hierarchy"] = formatWIS2TopicHierarchy(form.identification.topicHierarchy);
                 schemaModel.wis2box["data_mappings"] = untidyPluginsForSchema(form.plugins);
-                schemaModel.wis2box["cache"] = form.settings.cache;
+                // only add cache setting if it is false (as true is default)
+                if (form.settings.cache === false ){
+                    schemaModel.wis2box["cache"] = form.settings.cache;
+                }
             }
 
             // Time period information
