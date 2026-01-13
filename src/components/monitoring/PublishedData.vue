@@ -80,7 +80,8 @@ export default defineComponent({
       // Create array of objects with url and type from the messages
       let fileObjects = props.messages.map(message => ({
         url: message.canonical_url,
-        type: message.type
+        type: message.type,
+        size: message.size
       }));
 
       if (fileSearch.value) {
