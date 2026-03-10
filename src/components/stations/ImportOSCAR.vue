@@ -190,12 +190,12 @@ export default defineComponent({
     const token = ref(null);
     const rules = ref({
       validWSI: value => /^0-[0-9]{1,5}-[0-9]{0,5}-[0-9a-zA-Z]{1,16}$/.test(value) || 'Invalid WSI',
-      validTSI: value => value && value.length > 0 ? true : 'TSI must be set',
-      validLongitude: value => (value && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
-      validLatitude: value => (value && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
-      validElevation: value => (value && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
-      validBarometerHeight: value => (value && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
-      validName: value => value && value.length > 0 ? true : 'Name must be set',
+      validTSI: value => value && /^[0-9]{1,5}$/.test(value) && value.length > 0 ? true : 'TSI must be set',
+      validLongitude: value => (value && isNumber(value) && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
+      validLatitude: value => (value && isNumber(value) && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
+      validElevation: value => (value && isNumber(value) && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
+      validBarometerHeight: value => (value && isNumber(value) && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
+      validName: value => value && isAscii(value) && value.length > 0 ? true : 'Name must be set',
       token: value => value && value.length > 0 ? true : 'Please enter the authorization token',
       topic: value => value.length > 0 ? true : 'Select at least one topic'
     });
@@ -218,6 +218,16 @@ export default defineComponent({
       operatingStatusOptions.value = await loadCodeList('operatingStatus');
       WMORegionOptions.value = await loadCodeList('WMORegion');
     });
+
+    // Methods
+    
+    function isNumber(str) {
+      return /^-?(\d+)?(\.\d+)?$/.test(str);
+    };
+
+    function isAscii(str) {
+      return !/[^\x00-\x7f]/.test(str);
+    };
 
     const loadCodeList = async (codeList) => {
       let data;
