@@ -1434,6 +1434,8 @@ export default defineComponent({
                 const responseData = await response.text();
                 const parsed = Papa.parse(responseData, { header: true });
                 const list = parsed.data.map(item => item.Name);
+                list.push('ug-unma');
+                list.push('et-ethiomet');
                 let officialCentres = tidyCentres(list);
                 // Add these centres to the currently loaded list of centres
                 // (Set a delay of 1 second to ensure the list is loaded first)
@@ -1522,11 +1524,21 @@ export default defineComponent({
             // Load all JSON files in the templates folder
             const files = import.meta.glob('@/templates/*.json');
 
-            // For each file, add the JSON data to the template list
+            // Load all templates first, then sort alphabetically by their label
+            const loadedTemplates = [];
             for (const path in files) {
                 const file = await files[path]();
-                templateFiles.value.push(file.default);
+                loadedTemplates.push(file.default);
             }
+
+            loadedTemplates.sort((a, b) => {
+                const la = (a.label || '').toLowerCase();
+                const lb = (b.label || '').toLowerCase();
+                return la.localeCompare(lb);
+            });
+
+            templateFiles.value.push(...loadedTemplates);
+
             // Also push the 'other' datatype label
             templateFiles.value.push({ 'label': 'other' });
         };
