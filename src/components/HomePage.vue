@@ -34,8 +34,11 @@ if (window.location.href.startsWith(baseUrl)) {
     console.log(window.location.href);
     console.log(baseUrl);
     // If it does not show the error message
-    errorMessage.value = `Please access the web application via the base URL: ${baseUrl} to avoid CORS issues.`;
+    errorMessage.value = `Please access the web application via the base URL, redirecting.`;
     console.error(errorMessage.value);
+    setTimeout(function() {
+        window.location.href = baseUrl;
+    }, 3000);
 }
 
 </script>

@@ -1476,7 +1476,7 @@ export default defineComponent({
         const loadTopics = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/topics-dropdown-list.csv`);
+                const response = await fetch(`${import.meta.env.VITE_BASE_URL}/other/topics-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
@@ -1497,7 +1497,7 @@ export default defineComponent({
         const loadLicenseOptions = async () => {
             try {
                 // Get list of topics from the CSV file available within the current website
-                const response = await fetch(`${window.location.origin}/wis2box-webapp/other/licenses-dropdown-list.csv`);
+                const response = await fetch(`${import.meta.env.VITE_BASE_URL}/other/licenses-dropdown-list.csv`);
                 if (!response.ok) {
                     throw new Error('Network response was not okay, failed to load topics list.');
                 }
@@ -2664,7 +2664,7 @@ export default defineComponent({
 
         // Redirects the user when they successfully submit data
         const redirectUser = () => {
-            window.location.href = "/wis2box-webapp/dataset_editor";
+            window.location.href = `${import.meta.env.VITE_BASE_URL}/dataset_editor`;
         };
 
         const handleProcessError = (status) => {
