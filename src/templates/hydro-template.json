@@ -1,0 +1,37 @@
+{
+  "label": "hydrology/surface-based-observations/water-quantity",
+  "title": "Surface water observations ($CENTRE_ID)",
+  "identifier": "urn:wmo:md:$CENTRE_ID:surface-based-observations.ship",
+  "topicHierarchy": "origin/a/wis2/$CENTRE_ID/data/$DATA_POLICY/hydrology/surface-based-observations/water-quantity",
+  "language": "en",
+  "resolution": "PT1H",
+  "keywords": [
+    "observations",
+    "hydrology",
+    "streamflow",
+    "water quantity",
+    "water level"
+  ],
+  "themes": [
+    {
+      "concepts": [{ "id": "hydrology", "label": "hydrology" }],
+      "scheme": "http://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline"
+    }
+  ],
+  "wis2box": {
+    "retention": "P30D",
+    "topic_hierarchy": "$CENTRE_ID.data.core.hydrology.surface-based-observations.water-quantity",
+    "data_mappings": {
+      "plugins": {
+        "*": [
+          {
+            "plugin": "wis2box.data.universal.UniversalData",
+            "notify": true,
+            "buckets": ["wis2box-incoming"],
+            "file-pattern": "^.*$"
+          }
+        ]
+      }
+    }
+  }
+}
