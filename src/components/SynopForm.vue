@@ -77,6 +77,30 @@
                                     <v-checkbox :disabled="submitDisabled" v-model="notificationsOnPending"
                                         label="Publish on WIS2" hide-details></v-checkbox>
                                 </v-col>
+                                <v-col cols="2">
+                                    <v-checkbox v-model="addGTSHeaders"
+                                        label="Add GTS headers" hide-details></v-checkbox>
+                                </v-col>
+                            </v-row>
+                            <v-row v-if="addGTSHeaders" class="mt-2">
+                                <v-col cols="3">
+                                    <v-text-field
+                                        label="TTAAii"
+                                        v-model="TTAAii"
+                                        variant="outlined"
+                                        :rules="[TTAAiiRule]"
+                                        @input="e => capitalizeInput(e, 'TTAAii')"
+                                    ></v-text-field>
+                                </v-col>
+                                <v-col cols="3">
+                                    <v-text-field
+                                        label="CCCC"
+                                        v-model="cccc"
+                                        variant="outlined"
+                                        :rules="[CCCCRule]"
+                                        @input="e => capitalizeInput(e, 'cccc')"
+                                    ></v-text-field>
+                                </v-col>
                             </v-row>
                         </v-container>
                     </v-card-item>
@@ -237,6 +261,11 @@ export default defineComponent({
     setup() {
         // Reactive variables
 
+        // GTS headers logic
+        const addGTSHeaders = ref(false);
+        const TTAAii = ref("");
+        const cccc = ref("");
+
         // Current month/year to compare against user selection
         const date = ref({
             month: new Date().getUTCMonth(),
@@ -275,7 +304,16 @@ export default defineComponent({
 
         // Boolean for whether the submit button is disabled or not
         const submitDisabled = computed(() => {
-            return (datePossible.value === false) || !bulletin.value || !aaxxPresent.value || !equalsPresent.value || !datasetSelected.value || !token.value
+            // Basic checks
+            let disabled = (datePossible.value === false) || !bulletin.value || !aaxxPresent.value || !equalsPresent.value || !datasetSelected.value || !token.value;
+            // If GTS headers are enabled, validate TTAAii and CCCC
+            if (addGTSHeaders.value) {
+                // TTAAiiRule and CCCCRule must both return true
+                if (!TTAAiiRule(TTAAii.value) || !CCCCRule(cccc.value)) {
+                    disabled = true;
+                }
+            }
+            return disabled;
         })
 
         // Computes the result title re: success, partial success, or failure
@@ -408,6 +446,11 @@ export default defineComponent({
                     notify: notificationsOn.value // Boolean for WIS2 notifications
                 }
             };
+            // Add GTS headers if enabled
+            if (addGTSHeaders.value) {
+                payload.inputs.gts_ttaaii = TTAAii.value;
+                payload.inputs.gts_cccc = cccc.value;
+            }
             let headers = {
                 'encode': 'json',
                 'Content-Type': 'application/geo+json',
@@ -492,6 +535,33 @@ export default defineComponent({
             }
         }, { deep: true });
 
+        // TTAAii must be exactly 4 latin characters followed by 2 digits
+        const TTAAiiRule = v => {
+            if (!v) return true;
+            return /^[a-zA-Z]{4}\d{2}$/.test(v) || 'TTAAii must be 4 letters followed by 2 digits';
+        };
+
+        // CCCC must be exactly 4 alphanumeric characters
+        const CCCCRule = v => {
+            if (!v) return true;
+            return /^[a-zA-Z0-9]{4}$/.test(v) || 'CCCC must be 4 characters';
+        };
+
+        // Auto-capitalize input for TTAAii and CCCC fields
+        const capitalizeInput = (e, field) => {
+            let val = '';
+            if (typeof e === 'string') {
+                val = e.toUpperCase();
+            } else if (e && e.target && typeof e.target.value === 'string') {
+                val = e.target.value.toUpperCase();
+            }
+            if (field === 'TTAAii') {
+                TTAAii.value = val;
+            } else if (field === 'cccc') {
+                cccc.value = val;
+            }
+        };
+
         return {
             date,
             datePossible,
@@ -514,7 +584,13 @@ export default defineComponent({
             numberNotifications,
             checkMessage,
             scrollToRef,
-            submit
+            submit,
+            addGTSHeaders,
+            TTAAii,
+            cccc,
+            TTAAiiRule,
+            CCCCRule,
+            capitalizeInput,
         }
     }
 })
