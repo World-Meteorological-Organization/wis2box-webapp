@@ -308,8 +308,8 @@ export default defineComponent({
             let disabled = (datePossible.value === false) || !bulletin.value || !aaxxPresent.value || !equalsPresent.value || !datasetSelected.value || !token.value;
             // If GTS headers are enabled, validate TTAAii and CCCC
             if (addGTSHeaders.value) {
-                // TTAAiiRule and CCCCRule must both return true (not just truthy)
-                if (TTAAiiRule(TTAAii.value) !== true || CCCCRule(cccc.value) !== true) {
+                // Require both fields to be non-empty and valid
+                if (!TTAAii.value || !cccc.value || TTAAiiRule(TTAAii.value) !== true || CCCCRule(cccc.value) !== true) {
                     disabled = true;
                 }
             }
