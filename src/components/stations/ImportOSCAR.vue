@@ -58,7 +58,7 @@
         </v-card-item>
         <v-card-item>
           <CodeListSelector codeList="facilityType" label="Facility type" defaultHint="Select facility type"
-            v-model="station.properties.facility_type" />
+            v-model="station.properties.facility_type" :rules="[rules.facilityTypeAvailable]" />
         </v-card-item>
         <v-card-item v-if="hasGeometry">
           <v-container>
@@ -94,15 +94,15 @@
         </v-card-item>
         <v-card-item>
           <CodeListSelector codeList="WMORegion" label="WMO Region" defaultHint="Select WMO region"
-            v-model="station.properties.wmo_region" />
+            v-model="station.properties.wmo_region" :rules="[rules.wmoRegionAvailable]" />
         </v-card-item>
         <v-card-item>
           <CodeListSelector codeList="territory" label="Territory or WMO member operating the station"
-            defaultHint="Select territory" v-model="station.properties.territory_name" />
+            defaultHint="Select territory" v-model="station.properties.territory_name" :rules="[rules.territoryAvailable]" />
         </v-card-item>
         <v-card-item>
           <CodeListSelector codeList="operatingStatus" label="Operating status" defaultHint="Select operating status"
-            v-model="station.properties.status" />
+            v-model="station.properties.status" :rules="[rules.operatingStatusAvailable]" />
         </v-card-item>
         <v-card-item>
           <TopicSelector v-model="station.properties.topics" multiple :rules="[rules.topic]" class="mt-2" />
@@ -190,14 +190,18 @@ export default defineComponent({
     const token = ref(null);
     const rules = ref({
       validWSI: value => /^0-[0-9]{1,5}-[0-9]{0,5}-[0-9a-zA-Z]{1,16}$/.test(value) || 'Invalid WSI',
-      validTSI: value => value && value.length > 0 ? true : 'TSI must be set',
-      validLongitude: value => (value && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
-      validLatitude: value => (value && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
-      validElevation: value => (value && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
-      validBarometerHeight: value => (value && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
-      validName: value => value && value.length > 0 ? true : 'Name must be set',
+      validTSI: value => value && /^[0-9]{1,5}$/.test(value) && value.length > 0 ? true : 'TSI must be set',
+      validLongitude: value => (value && isNumber(value) && !(Math.abs(value) > 180 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid longitude',
+      validLatitude: value => (value && isNumber(value) && !(Math.abs(value) > 90 || isNaN(value))) || hasGeometry.value === false ? true : 'Invalid latitude',
+      validElevation: value => (value && isNumber(value) && !isNaN(value)) || hasGeometry.value === false ? true : 'Invalid elevation',
+      validBarometerHeight: value => (value && isNumber(value) && !isNaN(value)) || !isLandStation.value ? true : 'Invalid barometer height',
+      validName: value => value && isAscii(value) && value.length > 0 ? true : 'Name must be set',
       token: value => value && value.length > 0 ? true : 'Please enter the authorization token',
-      topic: value => value.length > 0 ? true : 'Select at least one topic'
+      topic: value => value.length > 0 ? true : 'Select at least one topic',
+      facilityTypeAvailable: () => (facilityTypeOptions.value && facilityTypeOptions.value.length > 0) || 'Facility type list unavailable',
+      territoryAvailable: () => (territoryOptions.value && territoryOptions.value.length > 0) || 'Territory list unavailable',
+      wmoRegionAvailable: () => (WMORegionOptions.value && WMORegionOptions.value.length > 0) || 'WMO Region list unavailable',
+      operatingStatusAvailable: () => (operatingStatusOptions.value && operatingStatusOptions.value.length > 0) || 'Operating status list unavailable'
     });
     const data = ref(null);
     const router = useRouter();
@@ -218,6 +222,16 @@ export default defineComponent({
       operatingStatusOptions.value = await loadCodeList('operatingStatus');
       WMORegionOptions.value = await loadCodeList('WMORegion');
     });
+
+    // Methods
+    
+    function isNumber(str) {
+      return /^-?(\d+)?(\.\d+)?$/.test(str);
+    };
+
+    function isAscii(str) {
+      return !/[^\x00-\x7f]/.test(str);
+    };
 
     const loadCodeList = async (codeList) => {
       let data;
@@ -243,7 +257,7 @@ export default defineComponent({
 
     const saveStation = async () => {
       const { valid } = await stationForm.value.validate();
-      if (!valid) {
+      if (!valid || valid === null) {
         errorMessage.value = "Please correct the highlighted fields before submitting.";
         showDialog.value = true;
         return;
