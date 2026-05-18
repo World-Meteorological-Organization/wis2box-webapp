@@ -309,7 +309,7 @@ export default defineComponent({
             // If GTS headers are enabled, validate TTAAii and CCCC
             if (addGTSHeaders.value) {
                 // Require both fields to be non-empty and valid
-                if (!TTAAii.value || !cccc.value || TTAAiiRule(TTAAii.value) !== true || CCCCRule(cccc.value) !== true) {
+                if (TTAAiiRule(TTAAii.value) !== true || CCCCRule(cccc.value) !== true) {
                     disabled = true;
                 }
             }
