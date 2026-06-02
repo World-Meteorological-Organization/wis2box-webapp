@@ -1657,12 +1657,12 @@ export default defineComponent({
             });
             // check if the link is license_options, if not it is a customLicense
             let is_custom_license = true;
-            for (const option of license_options.value) {
-                if (license_link === option.value) {
-                    is_custom_license = false;
-                    return;
-                }
-            }
+            //for (const option of license_options.value) {
+            //    if (license_link === option.value) {
+            //        is_custom_license = false;
+            //        break;
+            //    }
+            //}
             // Set the license link and whether it is a custom license
             formModel.identification.isCustomLicense = is_custom_license;
             formModel.identification.licenseLink = license_link;
