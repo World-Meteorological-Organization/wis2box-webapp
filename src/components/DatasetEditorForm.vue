@@ -1377,7 +1377,7 @@ export default defineComponent({
                 const responseData = await response.json();
 
                 // Update the list of items
-                items.value = responseData.features.map(item => item.properties.identifier);
+                items.value = responseData.features.map(item => item.id);
                 // Also get the centre IDs from this list
                 const loadedCentres = responseData.features.map(item => item.wis2box["centre_id"]);
                 centreList.value = [...new Set(loadedCentres)];
@@ -2437,7 +2437,7 @@ export default defineComponent({
             // Properties information
             schemaModel.properties = {};
             schemaModel.properties.type = "dataset";
-            schemaModel.properties.identifier = form.identification.identifier;
+            schemaModel.properties.id = form.identification.identifier;
             schemaModel.properties.title = form.identification.title;
             schemaModel.properties.description = form.identification.description;
             schemaModel.properties.language = {code: null};
