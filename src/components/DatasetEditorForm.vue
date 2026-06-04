@@ -2437,7 +2437,7 @@ export default defineComponent({
             // Properties information
             schemaModel.properties = {};
             schemaModel.properties.type = "dataset";
-            schemaModel.properties.id = form.identification.identifier;
+            schemaModel.properties.identifier = form.identification.identifier;
             schemaModel.properties.title = form.identification.title;
             schemaModel.properties.description = form.identification.description;
             schemaModel.properties.language = {code: null};
