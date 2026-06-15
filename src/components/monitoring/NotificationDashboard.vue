@@ -72,6 +72,10 @@ export default defineComponent({
             type: String,
             required: true
         },
+        datasetTopic: {
+            type: String,
+            required: true
+        },
         startDate: {
             type: Date,
             required: true
@@ -230,6 +234,7 @@ export default defineComponent({
         const getMessagesFromFeatures = (features) => {
             const selectedFields = features.map(item => ({
                 id: item.id,
+                topic: props.datasetTopic,
                 pubtime: new Date(item.properties.pubtime),
                 canonical_url: getCanonicalInfo(item.links).url,
                 type: getCanonicalInfo(item.links).type,

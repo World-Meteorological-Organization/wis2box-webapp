@@ -81,7 +81,8 @@ export default defineComponent({
       let fileObjects = props.messages.map(message => ({
         url: message.canonical_url,
         type: message.type,
-        size: message.size
+        size: message.size,
+        topic: message.topic
       }));
 
       if (fileSearch.value) {
@@ -107,7 +108,7 @@ export default defineComponent({
     const fileIsCAP = (file) => {
       return file.type === 'application/octet-stream' &&
          file.url.endsWith('.xml') &&
-         file.url.includes('cap');
+         file.topic.includes('advisories-warnings');
     };
 
     // Method to get filename from the canonical href
