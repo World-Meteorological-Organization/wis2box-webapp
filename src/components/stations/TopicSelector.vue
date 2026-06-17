@@ -54,6 +54,10 @@
         return label;
       });
 
+      const sortOptionsByTopic = (items) => {
+        return items.slice().sort((a, b) => (a.topic || "").localeCompare(b.topic || "", undefined, { sensitivity: "base" }));
+      };
+
       const fetchOptions = async () => {
         // Get dataset IDs
         if (testMode) {
@@ -68,7 +72,8 @@
               topic: "origin/a/wis2/test2-centre/core/test2",
               description: "Test 2 description"
             },
-          ]
+          ];
+          options.value = sortOptionsByTopic(options.value);
   
         }
         else {
@@ -81,14 +86,14 @@
               const data = await response.json();
               if (data.features) {
                 // Use Array.map to create a new array of the dataset IDs
-                options.value = data.features.map(feature => {
-                  if (feature.properties) {
-                    return {
+                options.value = sortOptionsByTopic(
+                  data.features
+                    .filter(feature => feature.properties?.['wmo:topicHierarchy'])
+                    .map(feature => ({
                       topic: feature.properties['wmo:topicHierarchy'],
                       description: feature.properties['description']
-                    }
-                  }
-                });
+                    }))
+                );
               }
               else {
                 console.error("API response is not an object");
