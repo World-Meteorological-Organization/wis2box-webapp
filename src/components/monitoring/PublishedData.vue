@@ -106,9 +106,7 @@ export default defineComponent({
     // Methods
 
     const fileIsCAP = (file) => {
-      return file.type === 'application/octet-stream' &&
-         file.url.endsWith('.xml') &&
-         file.topic.includes('advisories-warnings');
+      return file.url.endsWith('.xml') && file.topic.includes('advisories-warnings');
     };
 
     // Method to get filename from the canonical href
