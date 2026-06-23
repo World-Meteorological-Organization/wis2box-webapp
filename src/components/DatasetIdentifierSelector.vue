@@ -54,6 +54,10 @@ export default defineComponent({
       return label;
     });
 
+    const sortOptionsById = (items) => {
+      return items.slice().sort((a, b) => (a.id || "").localeCompare(b.id || "", undefined, { sensitivity: "base" }));
+    };
+
     const fetchOptions = async () => {
       // Get dataset IDs
       if (testMode) {
@@ -76,7 +80,8 @@ export default defineComponent({
             },
             description: "Test 2 description"
           },
-        ]
+        ];
+        options.value = sortOptionsById(options.value);
 
       }
       else {
@@ -89,19 +94,18 @@ export default defineComponent({
             const data = await response.json();
             if (data.features) {
               // Use Array.map to create a new array of the dataset IDs
-              options.value = data.features.map(feature => {
-                if (feature.properties?.identifier) {
-                  return {
-                    id: feature.properties.identifier,
+              options.value = sortOptionsById(
+                data.features
+                  .filter(feature => feature.id)
+                  .map(feature => ({
+                    id: feature.id,
                     metadata: {
-                      "id": feature.properties.identifier,
+                      "id": feature.id,
                       "topic": feature.properties['wmo:topicHierarchy']
                     },
                     description: feature.properties['description'],
                     mappings: feature.wis2box?.data_mappings.plugins || [],
-                  }
-                }
-              }
+                  }))
               );
             }
             else {

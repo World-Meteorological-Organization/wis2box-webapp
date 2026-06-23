@@ -52,7 +52,7 @@
         <v-col cols="12" class="max-dashboard-width">
             <!-- Dashboard visualising the notifications of the topic selected -->
             <!-- A key is needed to ensure this dashboard updates when the props are changed -->
-            <NotificationDashboard :datasetID="selectedDataset.metadata.id" :startDate="selectedStartDate"
+            <NotificationDashboard :datasetID="selectedDataset.metadata.id" :startDate="selectedStartDate" :datasetTopic="selectedDataset.metadata.topic"
                 :endDate="selectedEndDate" :wsi="searchedWsi" :limit="selectedLimit" v-if="showDashboard"
                 :key="dashboardKey" class="my-4" />
         </v-col>

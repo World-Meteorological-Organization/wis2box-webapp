@@ -1376,8 +1376,11 @@ export default defineComponent({
                 }
                 const responseData = await response.json();
 
-                // Update the list of items
-                items.value = responseData.features.map(item => item.id);
+                // Update the list of items and sort alphabetically
+                items.value = responseData.features
+                    .map(item => item.id)
+                    .filter(id => !!id)
+                    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
                 // Also get the centre IDs from this list
                 const loadedCentres = responseData.features.map(item => item.wis2box["centre_id"]);
                 centreList.value = [...new Set(loadedCentres)];
@@ -2175,6 +2178,7 @@ export default defineComponent({
                     item.fileType === previousPluginFileExtension.value &&
                     item.buckets === previousPluginBuckets.value &&
                     item.filePattern === previousPluginFilePattern.value);
+
                 // Update the plugin in the model
                 model.value.plugins[index] = {
                     fileType: pluginFileExtension.value,
@@ -2203,6 +2207,8 @@ export default defineComponent({
 
                 // Reassign updated list to model
                 model.value.plugins = updatedPluginList;
+
+                const schemaModel = transformToSchema(model.value);
             }
         };
 
@@ -2357,7 +2363,10 @@ export default defineComponent({
                     'file-pattern': plugin.filePattern
                 };
 
-                result.plugins[plugin.fileType] = [pluginInfo];
+                if (!result.plugins[plugin.fileType]) {
+                    result.plugins[plugin.fileType] = [];
+                }
+                result.plugins[plugin.fileType].push(pluginInfo);
             }
             return result;
         };
@@ -2437,7 +2446,7 @@ export default defineComponent({
             // Properties information
             schemaModel.properties = {};
             schemaModel.properties.type = "dataset";
-            schemaModel.properties.identifier = form.identification.identifier;
+            schemaModel.id = form.identification.identifier;
             schemaModel.properties.title = form.identification.title;
             schemaModel.properties.description = form.identification.description;
             schemaModel.properties.language = {code: null};
