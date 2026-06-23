@@ -1755,16 +1755,16 @@ export default defineComponent({
                     individual: contact.name,
                     positionName: contact.position,
                     name: contact.organization,
-                    phone: contact.phones ? contact.phones[0].value : '',
-                    email: contact.emails ? contact.emails[0].value : '',
-                    deliveryPoint: contact.addresses ? contact.addresses[0].deliveryPoint : '',
-                    city: contact.addresses ? contact.addresses[0].city : '',
-                    administrativeArea: contact.addresses ? contact.addresses[0].administrativeArea : '',
-                    postalCode: contact.addresses ? contact.addresses[0].postalCode : '',
-                    country: contact.addresses ? contact.addresses[0].country : '',
+                    phone: contact.phones ? contact.phones[0].value : undefined,
+                    email: contact.emails ? contact.emails[0].value : undefined,
+                    deliveryPoint: contact.addresses ? contact.addresses[0].deliveryPoint : undefined,
+                    city: contact.addresses ? contact.addresses[0].city : undefined,
+                    administrativeArea: contact.addresses ? contact.addresses[0].administrativeArea : undefined,
+                    postalCode: contact.addresses ? contact.addresses[0].postalCode : undefined,
+                    country: contact.addresses ? contact.addresses[0].country : undefined,
                     hoursOfService: contact.hoursOfService,
                     contactInstructions: contact.contactInstructions,
-                    url: contact.links ? contact.links[0].href : ''
+                    url: contact.links ? contact.links[0].href : undefined
                 };
             }
             schema.properties.contacts.forEach(contact => {
