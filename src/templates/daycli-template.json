@@ -4,7 +4,7 @@
   "identifier": "urn:wmo:md:$CENTRE_ID:climate.surface.daily",
   "topicHierarchy": "origin/a/wis2/$CENTRE_ID/data/$DATA_POLICY/climate/surface-based-observations/daily",
   "language": "en",
-  "resolution": "PT1H",
+  "resolution": "PT24H",
   "keywords": [
     "climate",
     "temperature",
