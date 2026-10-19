@@ -344,60 +344,12 @@
                         <v-btn icon="mdi-comment-question" variant="text" size="small"
                             @click="openSpatialHelpDialog = true" />
                     </v-card-title>
-                    <v-row dense>
-                        <v-col cols="5">
-                            <v-row>
-                                <v-col cols="12">
-                                    <!-- Allow the user to select a country different to that of the host for the auto bbox -->
-                                    <v-autocomplete label="Choose an automatic bounding box (optional)"
-                                        item-title="name" item-value="alpha-3" :items="filteredCountryCodeList"
-                                        v-model="bboxCountry" @update:modelValue="getAutoBbox(bboxCountry)"
-                                        hint="Your country may not have an automatic bounding box" persistent-hint
-                                        variant="outlined"></v-autocomplete>
-                                </v-col>
-                            </v-row>
-                            <v-row class="row-spacer" />
-                            <v-row class="coordinate-rows">
-                                <v-col cols="4" />
-                                <v-col cols="4">
-                                    <v-text-field label="North Latitude" type="number"
-                                        v-model.number="model.extents.northLatitude"
-                                        :rules="[rules.required, rules.latitude]" variant="outlined"
-                                        clearable></v-text-field>
-                                </v-col>
-                                <v-col cols="4" />
-                            </v-row>
-                            <v-row class="coordinate-rows">
-                                <v-col cols="4">
-                                    <v-text-field label="West Longitude" type="number"
-                                        v-model.number="model.extents.westLongitude"
-                                        :rules="[rules.required, rules.longitude]" variant="outlined"
-                                        clearable></v-text-field>
-                                </v-col>
-                                <v-col cols="4" />
-                                <v-col cols="4">
-                                    <v-text-field label="East Longitude" type="number"
-                                        v-model.number="model.extents.eastLongitude"
-                                        :rules="[rules.required, rules.longitude]" variant="outlined"
-                                        clearable></v-text-field>
-                                </v-col>
-                            </v-row>
-                            <v-row>
-                                <v-col cols="4" />
-                                <v-col cols="4">
-                                    <v-text-field label="South Latitude" type="number"
-                                        v-model.number="model.extents.southLatitude"
-                                        :rules="[rules.required, rules.latitude]" variant="outlined"
-                                        clearable></v-text-field>
-                                </v-col>
-                                <v-col cols="4" />
-                            </v-row>
-                        </v-col>
-                        <v-col cols="7">
-                            <!-- Bounding box editor -->
-                            <bbox-editor :box-bounds="bounds" id="bbox-editor"></bbox-editor>
-                        </v-col>
-                    </v-row>
+                    <spatial-properties
+                        v-model="model.extents.boundingBoxes"
+                        :filtered-country-code-list="filteredCountryCodeList"
+                        :bounding-boxes="boundingBoxes"
+                        :rules="rules"
+                    />
 
                     <!-- Contact (host) section -->
                     <v-card-title>
@@ -432,6 +384,11 @@
                                 required></vue-tel-input>
                             <p v-if="(typeof isHostPhoneValid !== 'undefined') && !isHostPhoneValid"
                                 class="hint-text hint-invalid">Phone number is not valid</p>
+                        </v-col>
+                        <v-col cols="4">
+                            <v-select label="Contact Instructions" v-model="model.host.contactInstructions"
+                                :items="contactInstructionsOptions" :rules="[rules.required]"
+                                variant="outlined"></v-select>
                         </v-col>
                     </v-row>
                     <v-col cols="12">
@@ -676,8 +633,8 @@
                     </v-card-subtitle>
                     <v-card-text>
                         <p>This section describes the general bounding spatial extent of the dataset in the
-                            geographic
-                            coordinate system. This can be created either:</p>
+                            geographic coordinate system. One or more bounding box can be defined.
+                            The coordinates for each bounding box can be set either:</p>
                         <br>
                         <p><b>Automatically:</b> By using the country dropdown (note that your country may not
                             be found
@@ -687,11 +644,17 @@
                         <p><b>Manually:</b> By the entering the northmost, eastmost, southmost, and westmost
                             coordinates
                             of
-                            the dataset.</p>
+                            the dataset. 
+                            You can use the "edit layers"-icon on the map to adjust
+                            your bounding box interactively.</p>
                         <br>
-                        <p><i><b>Warning: The automatic bounding box created may be incorrect for the country,
+                        <p><i><b>Warning: pre-defined bounding box for specific country may be incorrect,
                                     so please
                                     verify it before proceeding!</b></i></p>
+                        <p><i>Note: for spatial extents crossing the antimeridian (e.g. in the Pacific), multiple bounding boxes should be defined to ensure the correct spatial extent is captured.
+
+
+                        </i></p>
                         <br>
                     </v-card-text>
                 </v-card>
@@ -723,6 +686,8 @@
                         <p><b>Phone Number (optional):</b> The phone number of the contact, written in
                             international
                             format (+).</p>
+                        <br>
+                        <p><b>Preferred Contact Method:</b> The preferred way for users to contact the provider.</p>
                     </v-card-text>
                 </v-card>
             </v-dialog>
@@ -1003,20 +968,23 @@
 </template>
 
 <script>
-import BboxEditor from "@/components/BboxEditor.vue";
+import SpatialProperties from "@/components/SpatialProperties.vue";
 
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { VCard, VForm, VBtn, VChipGroup, VChip, VCombobox } from 'vuetify/lib/components/index.mjs';
 import Papa from 'papaparse';
+import packageJson from '../../package.json';
 
 const oapi = import.meta.env.VITE_API_URL;
+const generatedBy = `${packageJson.name} ${packageJson.version}`;
 
 export default defineComponent({
     name: "DatasetEditorForm",
     template: "#dataset-editor-form",
     props: ["topic"],
     components: {
-        BboxEditor,
+        SpatialProperties,
         VCard,
         VForm,
         VBtn,
@@ -1025,6 +993,7 @@ export default defineComponent({
         VCombobox
     },
     setup() {
+        const route = useRoute();
 
         const localID = ref('');
         const isEditing = computed(() => !isNew.value);
@@ -1063,6 +1032,101 @@ export default defineComponent({
             return JSON.parse(JSON.stringify(obj));
         }
 
+        const createEmptyBoundingBox = () => ({
+            northLatitude: null,
+            southLatitude: null,
+            eastLongitude: null,
+            westLongitude: null
+        });
+
+        const toFiniteNumberOrNull = (value) => {
+            if (value === null || value === undefined || value === '') {
+                return null;
+            }
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue) ? numericValue : null;
+        };
+
+        const isCompleteBoundingBox = (bbox) => {
+            return Number.isFinite(toFiniteNumberOrNull(bbox?.northLatitude))
+                && Number.isFinite(toFiniteNumberOrNull(bbox?.southLatitude))
+                && Number.isFinite(toFiniteNumberOrNull(bbox?.eastLongitude))
+                && Number.isFinite(toFiniteNumberOrNull(bbox?.westLongitude));
+        };
+
+        const normalizeBoundingBoxes = (extents) => {
+            const candidateBoxes = Array.isArray(extents?.boundingBoxes) && extents.boundingBoxes.length > 0
+                ? extents.boundingBoxes
+                : [{
+                    northLatitude: extents?.northLatitude,
+                    southLatitude: extents?.southLatitude,
+                    eastLongitude: extents?.eastLongitude,
+                    westLongitude: extents?.westLongitude
+                }];
+
+            return candidateBoxes.map((bbox) => ({
+                northLatitude: toFiniteNumberOrNull(bbox?.northLatitude),
+                southLatitude: toFiniteNumberOrNull(bbox?.southLatitude),
+                eastLongitude: toFiniteNumberOrNull(bbox?.eastLongitude),
+                westLongitude: toFiniteNumberOrNull(bbox?.westLongitude)
+            }));
+        };
+
+        const buildPolygonRing = (bbox) => {
+            return [
+                [bbox.westLongitude, bbox.northLatitude],
+                [bbox.eastLongitude, bbox.northLatitude],
+                [bbox.eastLongitude, bbox.southLatitude],
+                [bbox.westLongitude, bbox.southLatitude],
+                [bbox.westLongitude, bbox.northLatitude]
+            ];
+        };
+
+        const extractBoundingBoxFromRing = (ring) => {
+            if (!Array.isArray(ring) || ring.length < 4) {
+                return null;
+            }
+
+            const longitudes = ring
+                .map((coordinate) => Number(coordinate?.[0]))
+                .filter((value) => Number.isFinite(value));
+            const latitudes = ring
+                .map((coordinate) => Number(coordinate?.[1]))
+                .filter((value) => Number.isFinite(value));
+
+            if (longitudes.length === 0 || latitudes.length === 0) {
+                return null;
+            }
+
+            return {
+                westLongitude: Math.min(...longitudes),
+                eastLongitude: Math.max(...longitudes),
+                northLatitude: Math.max(...latitudes),
+                southLatitude: Math.min(...latitudes)
+            };
+        };
+
+        const parseGeometryToBoundingBoxes = (geometry) => {
+            if (!geometry || !Array.isArray(geometry.coordinates)) {
+                return [createEmptyBoundingBox()];
+            }
+
+            if (geometry.type === 'Polygon') {
+                const bbox = extractBoundingBoxFromRing(geometry.coordinates?.[0]);
+                return bbox ? [bbox] : [createEmptyBoundingBox()];
+            }
+
+            if (geometry.type === 'MultiPolygon') {
+                const multiBoxes = geometry.coordinates
+                    .map((polygon) => extractBoundingBoxFromRing(polygon?.[0]))
+                    .filter((bbox) => bbox !== null);
+
+                return multiBoxes.length > 0 ? multiBoxes : [createEmptyBoundingBox()];
+            }
+
+            return [createEmptyBoundingBox()];
+        };
+
         // Static variables
 
         // Default value of the form, not an exhaustive list of all fields
@@ -1083,9 +1147,12 @@ export default defineComponent({
             extents: {
                 // Default to the current date
                 dateStarted: new Date().toISOString(),
-                dateEnded: null
+                dateEnded: null,
+                boundingBoxes: [createEmptyBoundingBox()]
             },
-            host: {},
+            host: {
+                contactInstructions: 'email'
+            },
             plugins: [],
             links: [],
             settings: {
@@ -1108,6 +1175,8 @@ export default defineComponent({
             { rel: 'archives', description: 'Online data archive (rel="archives")' },
             { rel: 'service-desc', description: 'API or Web Service (rel="service-desc")' }
         ];
+
+        const contactInstructionsOptions = ['email', 'phone'];
 
         // WCMP2 schema version
         const schemaVersion = "http://wis.wmo.int/spec/wcmp/2/conf/core";
@@ -1185,10 +1254,6 @@ export default defineComponent({
         const dateStoppedError = ref('');
         // Switch for whether Non-Real-Time dataset is selected
         const isNonRealTime = ref(false);
-        // Geometry bounds
-        const bounds = ref([[0, 0], [0, 0]]);
-        // Country for the bbox - defaults to the host country
-        const bboxCountry = ref(null);
         // Phone number validation for each field
         const isHostPhoneValid = ref(null);
         // Each keyword added by the user, before being added to the model
@@ -1227,7 +1292,15 @@ export default defineComponent({
         const previousLinkURL = ref(null);
         const previousLinkRel = ref(null);
         // Metadata form to be filled
-        const model = ref({ 'identification': {}, 'settings': { 'cache': true }, 'extents': {}, 'host': {}, 'plugins': [], 'links': [] , 'license_link': defaults.license_link });
+        const model = ref({
+            'identification': {},
+            'settings': { 'cache': true },
+            'extents': { 'boundingBoxes': [createEmptyBoundingBox()] },
+            'host': { 'contactInstructions': 'email' },
+            'plugins': [],
+            'links': [],
+            'license_link': defaults.license_link
+        });
         // Execution token to be entered by user
         const token = ref(null);
         // Variable to control whether token is seen or not
@@ -1577,8 +1650,6 @@ export default defineComponent({
                     );
                     // Note: Set time delay to prevent watchers from firing too early
                     setTimeout(() => {
-                        // Force bounding box map to update
-                        updateBbox();
                         // As form was loaded, it must be already validated
                         formValidated.value = true;
                         // ...But it hasn't been updated yet
@@ -1731,13 +1802,13 @@ export default defineComponent({
             }
 
             // Geometry information
-            if (schema.geometry?.coordinates && schema.geometry?.coordinates[0].length >= 4) {
-                const coordinates = schema.geometry.coordinates[0];
-                formModel.extents.westLongitude = coordinates[0][0];
-                formModel.extents.northLatitude = coordinates[0][1];
-                formModel.extents.eastLongitude = coordinates[2][0];
-                formModel.extents.southLatitude = coordinates[2][1];
-            }
+            formModel.extents.boundingBoxes = parseGeometryToBoundingBoxes(schema.geometry);
+            const firstBoundingBox = formModel.extents.boundingBoxes[0] || createEmptyBoundingBox();
+            // Keep legacy fields in sync to preserve compatibility with existing logic.
+            formModel.extents.westLongitude = firstBoundingBox.westLongitude;
+            formModel.extents.northLatitude = firstBoundingBox.northLatitude;
+            formModel.extents.eastLongitude = firstBoundingBox.eastLongitude;
+            formModel.extents.southLatitude = firstBoundingBox.southLatitude;
 
             // Properties information
             formModel.identification.title = schema.properties.title;
@@ -1763,7 +1834,7 @@ export default defineComponent({
                     postalCode: contact.addresses ? contact.addresses[0].postalCode : undefined,
                     country: contact.addresses ? contact.addresses[0].country : undefined,
                     hoursOfService: contact.hoursOfService,
-                    contactInstructions: contact.contactInstructions,
+                    contactInstructions: contact.contactInstructions || 'email',
                     url: contact.links ? contact.links[0].href : undefined
                 };
             }
@@ -1772,6 +1843,9 @@ export default defineComponent({
                     formModel.host = structureHostDetails(contact);
                 }
             });
+            if (!formModel.host.contactInstructions) {
+                formModel.host.contactInstructions = 'email';
+            }
 
             // Additional settings information
             if (schema.properties["wmo:dataPolicy"]) {
@@ -1803,40 +1877,6 @@ export default defineComponent({
                 else {
                     defaultIdentification();
                 }
-            }
-        }
-
-        // Find the corresponding alpha-2 code to an alpha-3 code
-        const getAlpha2Code = (alpha3Code) => {
-            // Check if the alpha-3 code is 'int' first
-            if (alpha3Code === 'int') {
-                return 'int';
-            }
-            // If it isn't 'int', find the corresponding alpha-2 code
-            const country = countryCodeList.value.find(item => item["alpha-3"] === alpha3Code);
-            // Return the code in lower case as we need it in this
-            // form for founding the corresponding bbox
-            return country["alpha-2"].toLowerCase();
-        }
-
-        // Get an automatic bounding box using the country code
-        const getAutoBbox = async (alpha3Code) => {
-            try {
-                // Use this to find the corresponding alpha-2 code
-                const alpha2Code = getAlpha2Code(alpha3Code);
-
-                // Use the alpha-2 code to get the corresponding bbox
-                const boundingBox = boundingBoxes.value[alpha2Code]['bbox'];
-
-                // Now populate the form with the bounding box values
-                model.value.extents.northLatitude = boundingBox.maxy;
-                model.value.extents.eastLongitude = boundingBox.maxx;
-                model.value.extents.southLatitude = boundingBox.miny;
-                model.value.extents.westLongitude = boundingBox.minx;
-
-            } catch (error) {
-                console.error(error);
-                message.value = "Error loading automatic bounding box.";
             }
         }
 
@@ -2028,16 +2068,6 @@ export default defineComponent({
             
             model.value.identification.topicHierarchy = centreID + '/data/' + policy + '/';
         }
-
-        // Update the rectangle in the map when the user changes the bounding box
-        const updateBbox = () => {
-            bounds.value = [
-                model.value.extents.northLatitude || 90,
-                model.value.extents.eastLongitude || -180,
-                model.value.extents.southLatitude || -90,
-                model.value.extents.westLongitude || 180
-            ];
-        };
 
         // Validates the phone numbers entered by the user
         const onHostPhoneValidate = (output) => {
@@ -2387,6 +2417,7 @@ export default defineComponent({
             schemaModel.id = form.identification.identifier;
             schemaModel.conformsTo = [schemaVersion];
             schemaModel.type = "Feature";
+            schemaModel.generated_by = generatedBy;
 
             // wis2box information
             // Note: This is an extension to the WCMP2 schema
@@ -2425,23 +2456,27 @@ export default defineComponent({
             }
 
             // Geometry information
-            schemaModel.geometry = {
-                type: "Polygon",
-                coordinates: [
-                    [
-                        // Top left corner
-                        [form.extents.westLongitude, form.extents.northLatitude],
-                        // Top right corner
-                        [form.extents.eastLongitude, form.extents.northLatitude],
-                        // Bottom right corner
-                        [form.extents.eastLongitude, form.extents.southLatitude],
-                        // Bottom left corner
-                        [form.extents.westLongitude, form.extents.southLatitude],
-                        // Back top top left corner to close the polygon
-                        [form.extents.westLongitude, form.extents.northLatitude]
-                    ]
-                ]
-            };
+            const completeBoundingBoxes = normalizeBoundingBoxes(form.extents)
+                .filter(isCompleteBoundingBox);
+
+            if (completeBoundingBoxes.length > 1) {
+                schemaModel.geometry = {
+                    type: "MultiPolygon",
+                    coordinates: completeBoundingBoxes.map((bbox) => [buildPolygonRing(bbox)])
+                };
+            } else {
+                const fallbackBoundingBox = completeBoundingBoxes[0] || {
+                    westLongitude: toFiniteNumberOrNull(form.extents.westLongitude),
+                    northLatitude: toFiniteNumberOrNull(form.extents.northLatitude),
+                    eastLongitude: toFiniteNumberOrNull(form.extents.eastLongitude),
+                    southLatitude: toFiniteNumberOrNull(form.extents.southLatitude)
+                };
+
+                schemaModel.geometry = {
+                    type: "Polygon",
+                    coordinates: [buildPolygonRing(fallbackBoundingBox)]
+                };
+            }
 
             // Properties information
             schemaModel.properties = {};
@@ -2482,7 +2517,7 @@ export default defineComponent({
                     type: "text/html"
                 }],
                 hoursOfService: form.host.hoursOfService,
-                contactInstructions: form.host.contactInstructions,
+                contactInstructions: form.host.contactInstructions || 'email',
                 roles: ["host"]
             };
 
@@ -2533,6 +2568,9 @@ export default defineComponent({
         // Validates the metadata form
         const validateForm = async () => {
             const { valid } = await formRef.value.validate();
+            const normalizedBoxes = normalizeBoundingBoxes(model.value.extents);
+            const allBoundingBoxesComplete = normalizedBoxes.length > 0
+                && normalizedBoxes.every(isCompleteBoundingBox);
 
             // Check if date fields are filled
             dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required.';
@@ -2540,6 +2578,7 @@ export default defineComponent({
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value) &&
                 (isNonRealTime.value === false || model.value.links.length !== 0) &&
+                allBoundingBoxesComplete &&
                 !dateStartedError.value && !dateStoppedError.value;
 
             message.value = isFormValid
@@ -2556,6 +2595,9 @@ export default defineComponent({
             }
             if (dateStoppedError.value !== '') {
                 message.value += " " + dateStoppedError.value;
+            }
+            if (!allBoundingBoxesComplete) {
+                message.value += " Each bounding box must include all four coordinates, or be removed.";
             }
             formValidated.value = isFormValid;
 
@@ -2803,8 +2845,18 @@ export default defineComponent({
         };
 
         // Mounted
-        onMounted(() => {
-            loadList();
+        onMounted(async () => {
+            await loadList();
+
+            const routeIdentifier = Array.isArray(route.query.identifier)
+                ? route.query.identifier[0]
+                : route.query.identifier;
+
+            if (typeof routeIdentifier === 'string' && routeIdentifier.length > 0 && items.value.includes(routeIdentifier)) {
+                identifier.value = routeIdentifier;
+                await loadMetadata();
+            }
+
             loadOfficialCentres();
             loadDisciplines();
             loadTopics();
@@ -2921,11 +2973,6 @@ export default defineComponent({
             }
         });
 
-        // Update the map when the user changes the bounding box
-        watch(() => deepClone(model.value.extents), () => {
-            updateBbox();
-        });
-
         return {
             defaults,
             earthSystemDisciplines,
@@ -2934,6 +2981,7 @@ export default defineComponent({
             license_options,
             durations,
             linkTypeList,
+            contactInstructionsOptions,
             pluginList,
             templateList,
             bucketList,
@@ -2963,11 +3011,10 @@ export default defineComponent({
             identifier,
             languageCodeList,
             countryCodeList,
+            boundingBoxes,
             isNew,
             isEndDateDisabled,
             isNonRealTime,
-            bounds,
-            bboxCountry,
             isHostPhoneValid,
             keyword,
             pluginIsNew,
@@ -3012,7 +3059,6 @@ export default defineComponent({
             loadList,
             loadMetadata,
             continueToForm,
-            getAutoBbox,
             onHostPhoneValidate,
             addKeyword,
             removeKeyword,
@@ -3046,14 +3092,6 @@ export default defineComponent({
 
 </script>
 <style scoped>
-.row-spacer {
-    height: 1rem;
-}
-
-.coordinate-rows {
-    height: 4rem;
-}
-
 .clickable-row {
     cursor: pointer;
 }

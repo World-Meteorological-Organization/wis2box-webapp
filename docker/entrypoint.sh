@@ -38,15 +38,6 @@ fi
 export VITE_BASEMAP_ATTRIBUTION
 echo "VITE_BASEMAP_ATTRIBUTION=${VITE_BASEMAP_ATTRIBUTION}"
 
-# Homepage welcome message
-if [ -z "$WIS2BOX_WEBAPP_HOMEPAGE_MESSAGE" ]; then
-  echo "WIS2BOX_WEBAPP_HOMEPAGE_MESSAGE is not set, using default"
-  VITE_WEBAPP_HOMEPAGE_MESSAGE="<h2>Welcome to the wis2box-webapp!</h2><br> This web-application allows you to configure your datasets, configure station metadata, submit FM-12/CSV data and monitor your WIS2-notifications."
-else
-  VITE_WEBAPP_HOMEPAGE_MESSAGE="$WIS2BOX_WEBAPP_HOMEPAGE_MESSAGE"
-fi
-export VITE_WEBAPP_HOMEPAGE_MESSAGE
-
 set +e
 sh docker/generate-topic-list.sh /wis2box-webapp/public/other
 if [ $? -ne 0 ]; then
