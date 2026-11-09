@@ -339,16 +339,10 @@
                             </v-row>
                         </v-col>
                     </v-row>
-                    <v-card-title>
-                        Spatial Properties
-                        <v-btn icon="mdi-comment-question" variant="text" size="small"
-                            @click="openSpatialHelpDialog = true" />
-                    </v-card-title>
-                    <spatial-properties
-                        v-model="model.extents.boundingBoxes"
-                        :filtered-country-code-list="filteredCountryCodeList"
-                        :bounding-boxes="boundingBoxes"
-                        :rules="rules"
+                    <geometry-editor
+                        v-model="model.extents.geometry"
+                        @update:modelValue="formValidated = false"
+                        @update:valid="geometryValid = $event"
                     />
 
                     <!-- Contact (host) section -->
@@ -619,42 +613,6 @@
                         <p>This is split into two parts, the <b>value</b> (e.g. 1) and the <b>unit</b> (e.g.
                             'hour(s)').
                         </p>
-                        <br>
-                    </v-card-text>
-                </v-card>
-            </v-dialog>
-            <v-dialog v-model="openSpatialHelpDialog" max-width="600px">
-                <v-card>
-                    <v-toolbar title="Spatial Properties" color="#003DA5">
-                        <v-btn icon="mdi-close" variant="text" size="small" @click="openSpatialHelpDialog = false" />
-                    </v-toolbar>
-                    <v-card-subtitle>
-                        How do I complete this section?
-                    </v-card-subtitle>
-                    <v-card-text>
-                        <p>This section describes the general bounding spatial extent of the dataset in the
-                            geographic coordinate system. One or more bounding box can be defined.
-                            The coordinates for each bounding box can be set either:</p>
-                        <br>
-                        <p><b>Automatically:</b> By using the country dropdown (note that your country may not
-                            be found
-                            on
-                            this list).</p>
-                        <br>
-                        <p><b>Manually:</b> By the entering the northmost, eastmost, southmost, and westmost
-                            coordinates
-                            of
-                            the dataset. 
-                            You can use the "edit layers"-icon on the map to adjust
-                            your bounding box interactively.</p>
-                        <br>
-                        <p><i><b>Warning: pre-defined bounding box for specific country may be incorrect,
-                                    so please
-                                    verify it before proceeding!</b></i></p>
-                        <p><i>Note: for spatial extents crossing the antimeridian (e.g. in the Pacific), multiple bounding boxes should be defined to ensure the correct spatial extent is captured.
-
-
-                        </i></p>
                         <br>
                     </v-card-text>
                 </v-card>
@@ -968,7 +926,7 @@
 </template>
 
 <script>
-import SpatialProperties from "@/components/SpatialProperties.vue";
+import GeometryEditor, { geometryValidationError } from "@/components/GeometryEditor.vue";
 
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -984,7 +942,7 @@ export default defineComponent({
     template: "#dataset-editor-form",
     props: ["topic"],
     components: {
-        SpatialProperties,
+        GeometryEditor,
         VCard,
         VForm,
         VBtn,
@@ -1032,101 +990,6 @@ export default defineComponent({
             return JSON.parse(JSON.stringify(obj));
         }
 
-        const createEmptyBoundingBox = () => ({
-            northLatitude: null,
-            southLatitude: null,
-            eastLongitude: null,
-            westLongitude: null
-        });
-
-        const toFiniteNumberOrNull = (value) => {
-            if (value === null || value === undefined || value === '') {
-                return null;
-            }
-            const numericValue = Number(value);
-            return Number.isFinite(numericValue) ? numericValue : null;
-        };
-
-        const isCompleteBoundingBox = (bbox) => {
-            return Number.isFinite(toFiniteNumberOrNull(bbox?.northLatitude))
-                && Number.isFinite(toFiniteNumberOrNull(bbox?.southLatitude))
-                && Number.isFinite(toFiniteNumberOrNull(bbox?.eastLongitude))
-                && Number.isFinite(toFiniteNumberOrNull(bbox?.westLongitude));
-        };
-
-        const normalizeBoundingBoxes = (extents) => {
-            const candidateBoxes = Array.isArray(extents?.boundingBoxes) && extents.boundingBoxes.length > 0
-                ? extents.boundingBoxes
-                : [{
-                    northLatitude: extents?.northLatitude,
-                    southLatitude: extents?.southLatitude,
-                    eastLongitude: extents?.eastLongitude,
-                    westLongitude: extents?.westLongitude
-                }];
-
-            return candidateBoxes.map((bbox) => ({
-                northLatitude: toFiniteNumberOrNull(bbox?.northLatitude),
-                southLatitude: toFiniteNumberOrNull(bbox?.southLatitude),
-                eastLongitude: toFiniteNumberOrNull(bbox?.eastLongitude),
-                westLongitude: toFiniteNumberOrNull(bbox?.westLongitude)
-            }));
-        };
-
-        const buildPolygonRing = (bbox) => {
-            return [
-                [bbox.westLongitude, bbox.northLatitude],
-                [bbox.eastLongitude, bbox.northLatitude],
-                [bbox.eastLongitude, bbox.southLatitude],
-                [bbox.westLongitude, bbox.southLatitude],
-                [bbox.westLongitude, bbox.northLatitude]
-            ];
-        };
-
-        const extractBoundingBoxFromRing = (ring) => {
-            if (!Array.isArray(ring) || ring.length < 4) {
-                return null;
-            }
-
-            const longitudes = ring
-                .map((coordinate) => Number(coordinate?.[0]))
-                .filter((value) => Number.isFinite(value));
-            const latitudes = ring
-                .map((coordinate) => Number(coordinate?.[1]))
-                .filter((value) => Number.isFinite(value));
-
-            if (longitudes.length === 0 || latitudes.length === 0) {
-                return null;
-            }
-
-            return {
-                westLongitude: Math.min(...longitudes),
-                eastLongitude: Math.max(...longitudes),
-                northLatitude: Math.max(...latitudes),
-                southLatitude: Math.min(...latitudes)
-            };
-        };
-
-        const parseGeometryToBoundingBoxes = (geometry) => {
-            if (!geometry || !Array.isArray(geometry.coordinates)) {
-                return [createEmptyBoundingBox()];
-            }
-
-            if (geometry.type === 'Polygon') {
-                const bbox = extractBoundingBoxFromRing(geometry.coordinates?.[0]);
-                return bbox ? [bbox] : [createEmptyBoundingBox()];
-            }
-
-            if (geometry.type === 'MultiPolygon') {
-                const multiBoxes = geometry.coordinates
-                    .map((polygon) => extractBoundingBoxFromRing(polygon?.[0]))
-                    .filter((bbox) => bbox !== null);
-
-                return multiBoxes.length > 0 ? multiBoxes : [createEmptyBoundingBox()];
-            }
-
-            return [createEmptyBoundingBox()];
-        };
-
         // Static variables
 
         // Default value of the form, not an exhaustive list of all fields
@@ -1148,7 +1011,7 @@ export default defineComponent({
                 // Default to the current date
                 dateStarted: new Date().toISOString(),
                 dateEnded: null,
-                boundingBoxes: [createEmptyBoundingBox()]
+                geometry: null
             },
             host: {
                 contactInstructions: 'email'
@@ -1187,8 +1050,6 @@ export default defineComponent({
             dateRequired: value => (value !== null && value !== undefined) || "Date is required",
             identifier: value => !isNew.value || !items.value.includes(value) || "Identifier already exists",
             centreID: value => /^[a-z0-9_-]{2,}$/.test(value) || 'Invalid centre ID. Must be lowercase with at least 2 characters',
-            latitude: value => value >= -90 && value <= 90 || 'Latitude must be between -90 and 90',
-            longitude: value => value >= -180 && value <= 180 || 'Longitude must be between -180 and 180',
             url: value => (value !== null && value !== undefined && value !== '') && /^(https?:\/\/)((\d{1,3}\.){3}\d{1,3}|[-a-zA-Z0-9@:%._+~#=]{1,253}\.[a-z]{2,})(:\d{1,5})?(\/[-a-zA-Z0-9@:%_+.~#?&//=]*)?$/.test(value) || 'Invalid URL format',
             email: value => /^[a-z0-9._-]+@[a-z0-9-]+\.[a-z0-9.-]+$/.test(value) || 'Invalid email format',
             keywords: value => model.value.identification.keywords?.length >= 3 || 'There must be at least 3 keywords',
@@ -1244,8 +1105,7 @@ export default defineComponent({
         const subTopics2 = ref([]);
         // list of valid license_options
         const license_options = ref([]);
-        // Object of country alpha-2 codes with bounding boxes
-        const boundingBoxes = ref({});
+        const geometryValid = ref(false);
         // Whether or not the metadata is new or existing
         const isNew = ref(false);
         // Switch for whether end date is enabled
@@ -1295,7 +1155,7 @@ export default defineComponent({
         const model = ref({
             'identification': {},
             'settings': { 'cache': true },
-            'extents': { 'boundingBoxes': [createEmptyBoundingBox()] },
+            'extents': { 'geometry': null },
             'host': { 'contactInstructions': 'email' },
             'plugins': [],
             'links': [],
@@ -1309,7 +1169,6 @@ export default defineComponent({
         const openInitialHelpDialog = ref(false);
         const openIdentificationHelpDialog = ref(false);
         const openTemporalHelpDialog = ref(false);
-        const openSpatialHelpDialog = ref(false);
         const openHostHelpDialog = ref(false);
         const openDistribHelpDialog = ref(false);
         const openPluginHelpDialog = ref(false);
@@ -1398,20 +1257,6 @@ export default defineComponent({
         // Has the user filled the dialog window?
         const initialDialogFilled = computed(() => {
             return model.value.identification.centreID && (selectedTemplate.value || isNonRealTime.value);
-        });
-
-        // Filter the country code list so that only the countries
-        // which have an automatic bounding box are shown
-        const filteredCountryCodeList = computed(() => {
-            const filteredList = countryCodeList.value.filter(country => {
-                // Find out if the (lower case) alpha 2 code is in the bbox list
-                return country["alpha-2"].toLowerCase() in boundingBoxes.value;
-            });
-            // Create a global option
-            const global = { "name": "Global", "alpha-2": "int", "alpha-3": "int" };
-            // Add this global option to the start of the list
-            filteredList.unshift(global);
-            return filteredList;
         });
 
         // If the end date is specified, is it after the start date
@@ -1802,13 +1647,7 @@ export default defineComponent({
             }
 
             // Geometry information
-            formModel.extents.boundingBoxes = parseGeometryToBoundingBoxes(schema.geometry);
-            const firstBoundingBox = formModel.extents.boundingBoxes[0] || createEmptyBoundingBox();
-            // Keep legacy fields in sync to preserve compatibility with existing logic.
-            formModel.extents.westLongitude = firstBoundingBox.westLongitude;
-            formModel.extents.northLatitude = firstBoundingBox.northLatitude;
-            formModel.extents.eastLongitude = firstBoundingBox.eastLongitude;
-            formModel.extents.southLatitude = firstBoundingBox.southLatitude;
+            formModel.extents.geometry = deepClone(schema.geometry ?? null);
 
             // Properties information
             formModel.identification.title = schema.properties.title;
@@ -2038,19 +1877,6 @@ export default defineComponent({
             } catch (error) {
                 console.error(error);
                 message.value = "Error loading country codes.";
-            }
-            // Load bounding boxes
-            try {
-                const response = await fetch(`${import.meta.env.VITE_BASE_URL}/codelists/country-bbox.json`);
-                if (!response.ok) {
-                    throw new Error('Failed to load bounding boxes.');
-                }
-                const responseData = await response.json();
-                // Remove the countries header as it is redundant
-                boundingBoxes.value = responseData['countries'];
-            } catch (error) {
-                console.error(error);
-                message.value = "Error loading default bounding boxes.";
             }
         };
 
@@ -2456,27 +2282,7 @@ export default defineComponent({
             }
 
             // Geometry information
-            const completeBoundingBoxes = normalizeBoundingBoxes(form.extents)
-                .filter(isCompleteBoundingBox);
-
-            if (completeBoundingBoxes.length > 1) {
-                schemaModel.geometry = {
-                    type: "MultiPolygon",
-                    coordinates: completeBoundingBoxes.map((bbox) => [buildPolygonRing(bbox)])
-                };
-            } else {
-                const fallbackBoundingBox = completeBoundingBoxes[0] || {
-                    westLongitude: toFiniteNumberOrNull(form.extents.westLongitude),
-                    northLatitude: toFiniteNumberOrNull(form.extents.northLatitude),
-                    eastLongitude: toFiniteNumberOrNull(form.extents.eastLongitude),
-                    southLatitude: toFiniteNumberOrNull(form.extents.southLatitude)
-                };
-
-                schemaModel.geometry = {
-                    type: "Polygon",
-                    coordinates: [buildPolygonRing(fallbackBoundingBox)]
-                };
-            }
+            schemaModel.geometry = deepClone(form.extents.geometry);
 
             // Properties information
             schemaModel.properties = {};
@@ -2568,9 +2374,7 @@ export default defineComponent({
         // Validates the metadata form
         const validateForm = async () => {
             const { valid } = await formRef.value.validate();
-            const normalizedBoxes = normalizeBoundingBoxes(model.value.extents);
-            const allBoundingBoxesComplete = normalizedBoxes.length > 0
-                && normalizedBoxes.every(isCompleteBoundingBox);
+            const geometryIssue = geometryValidationError(model.value.extents.geometry);
 
             // Check if date fields are filled
             dateStartedError.value = model.value.extents.dateStarted ? '' : 'Begin Date is required.';
@@ -2578,7 +2382,7 @@ export default defineComponent({
 
             const isFormValid = valid && (!model.value.host.phone || isHostPhoneValid.value) &&
                 (isNonRealTime.value === false || model.value.links.length !== 0) &&
-                allBoundingBoxesComplete &&
+                geometryValid.value && !geometryIssue &&
                 !dateStartedError.value && !dateStoppedError.value;
 
             message.value = isFormValid
@@ -2596,8 +2400,8 @@ export default defineComponent({
             if (dateStoppedError.value !== '') {
                 message.value += " " + dateStoppedError.value;
             }
-            if (!allBoundingBoxesComplete) {
-                message.value += " Each bounding box must include all four coordinates, or be removed.";
+            if (geometryIssue || !geometryValid.value) {
+                message.value += " " + (geometryIssue || "Finish or cancel the pending map edits.");
             }
             formValidated.value = isFormValid;
 
@@ -2687,6 +2491,7 @@ export default defineComponent({
             }
             const checks = [
                 { condition: !formValidated.value, message: "The form must be validated" },
+                { condition: !geometryValid.value || !!geometryValidationError(model.value.extents.geometry), message: "Provide a valid polygon geometry and finish any pending map edits" },
                 { condition: !formUpdated.value, message: "You must update the existing data" },
                 { 
                     condition: (model.value.plugins?.length === 0 && !isNonRealTime.value),
@@ -3005,13 +2810,12 @@ export default defineComponent({
             openRemoveConfirmationDialog,
             convertToLowercase,
             initialDialogFilled,
-            filteredCountryCodeList,
+            geometryValid,
             endDatePossible,
             selectedTemplate,
             identifier,
             languageCodeList,
             countryCodeList,
-            boundingBoxes,
             isNew,
             isEndDateDisabled,
             isNonRealTime,
@@ -3043,7 +2847,6 @@ export default defineComponent({
             openInitialHelpDialog,
             openIdentificationHelpDialog,
             openTemporalHelpDialog,
-            openSpatialHelpDialog,
             openHostHelpDialog,
             openDistribHelpDialog,
             openPluginHelpDialog,

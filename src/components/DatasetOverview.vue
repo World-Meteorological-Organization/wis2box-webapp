@@ -194,7 +194,7 @@ const gdcDatasetsByCentre = ref({});
 const router = useRouter();
 
 const GDC_LABEL_TO_BASE_URL = Object.freeze({
-    DEV: 'https://gdc.wis2dev.io',
+    DEV: 'https://wmo-resource-catalogue.wis2dev.io',
     DWD: 'https://wis2.dwd.de/gdc',
     CMA: 'https://gdc.wis.cma.cn/api',
     ECCC: 'https://wis2-gdc.weather.gc.ca'
