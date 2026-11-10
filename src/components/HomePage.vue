@@ -9,15 +9,16 @@
                     {{ errorMessage }}
                 </v-alert>
             </v-card-item>
+            <DatasetOverview />
         </v-card>
     </v-row>
 </template>
 
 <script setup>
-
 import { ref } from 'vue';
+import DatasetOverview from '@/components/DatasetOverview.vue';
 
-const homeContent = ref('<h2>Welcome to the wis2box-webapp!</h2><br> This web-application allows you to configure datasets and stations, manually submit FM-12 SYNOP and check notifications sent by this wis2box.')
+const homeContent = ref('<h2>Welcome to the wis2box-webapp!</h2><br> This web-application allows you to review and configure your datasets, configure station metadata, manually submit FM-12 SYNOP and check notifications sent by this wis2box.')
 
 if (import.meta.env.VITE_WEBAPP_HOMEPAGE_MESSAGE != undefined) {
     homeContent.value = import.meta.env.VITE_WEBAPP_HOMEPAGE_MESSAGE;
@@ -39,5 +40,3 @@ if (window.location.href.startsWith(baseUrl)) {
 }
 
 </script>
-
-<style scoped></style>
