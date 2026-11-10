@@ -677,6 +677,7 @@ watch(selectedCentreId, async (centreId) => {
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    padding-top: 8px;
 }
 
 .centre-selector-inline {
