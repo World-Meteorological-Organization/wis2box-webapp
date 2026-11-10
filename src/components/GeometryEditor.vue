@@ -19,6 +19,10 @@
             <v-btn color="error" prepend-icon="mdi-delete" block :disabled="!modelValue || editing" @click="clearGeometry">
                 Clear Geometry
             </v-btn>
+            <v-btn v-if="modelValue" prepend-icon="mdi-code-json" block class="mt-3"
+                :disabled="editing" @click="openCoordinateEditor">
+                Edit Coordinates
+            </v-btn>
             <v-btn v-if="canSplitGeometry" color="#003DA5" prepend-icon="mdi-content-cut" block
                 class="mt-3" :disabled="editing" @click="splitAtAntimeridian">
                 Split at Antimeridian
@@ -53,6 +57,29 @@
                     either side.</p>
                 <br>
                 <p>Move the cursor over the map to see its longitude and latitude in decimal degrees.</p>
+            </v-card-text>
+        </v-card>
+    </v-dialog>
+    <v-dialog v-model="showCoordinateEditor" max-width="800px">
+        <v-card>
+            <v-toolbar title="Edit Geometry Coordinates" color="#003DA5">
+                <v-btn icon="mdi-close" variant="text" size="small" @click="showCoordinateEditor = false" />
+            </v-toolbar>
+            <v-card-actions>
+                <v-spacer />
+                <v-btn variant="text" @click="showCoordinateEditor = false">Cancel</v-btn>
+                <v-btn :variant="coordinatesDirty ? 'elevated' : 'text'"
+                    :color="coordinatesDirty ? 'red-darken-3' : '#003DA5'"
+                    :class="{ 'text-white': coordinatesDirty }" @click="applyCoordinateEdit">
+                    Apply edits
+                </v-btn>
+            </v-card-actions>
+            <v-card-text>
+                <v-alert v-if="coordinateError" type="error" variant="tonal" class="mb-4">
+                    {{ coordinateError }}
+                </v-alert>
+                <v-textarea v-model="coordinateDraft" label="GeoJSON geometry" variant="outlined"
+                    rows="12" auto-grow spellcheck="false" />
             </v-card-text>
         </v-card>
     </v-dialog>
@@ -217,12 +244,17 @@ export default {
     setup(props, { emit }) {
         const mapElement = ref(null);
         const showHelp = ref(false);
+        const showCoordinateEditor = ref(false);
+        const coordinateDraft = ref('');
+        const coordinateBaseline = ref('');
+        const coordinateError = ref('');
         const editing = ref(false);
         const selectedCountry = ref(null);
         const countries = ref([]);
         const splitError = ref('');
         const canSplitGeometry = computed(() => hasAntimeridianCrossing(props.modelValue));
         const geometryError = computed(() => geometryValidationError(props.modelValue));
+        const coordinatesDirty = computed(() => coordinateDraft.value !== coordinateBaseline.value);
         let countryBoxes = {};
         let map;
         let drawnItems;
@@ -264,6 +296,31 @@ export default {
         const clearGeometry = () => {
             emit('update:modelValue', null);
             emit('update:valid', false);
+        };
+
+        const openCoordinateEditor = () => {
+            coordinateDraft.value = JSON.stringify(props.modelValue, null, 2);
+            coordinateBaseline.value = coordinateDraft.value;
+            coordinateError.value = '';
+            showCoordinateEditor.value = true;
+        };
+
+        const applyCoordinateEdit = () => {
+            let geometry;
+            try {
+                geometry = JSON.parse(coordinateDraft.value);
+            } catch {
+                coordinateError.value = 'Enter valid JSON for a GeoJSON Polygon or MultiPolygon.';
+                return;
+            }
+            const error = geometryValidationError(geometry);
+            if (error) {
+                coordinateError.value = error;
+                return;
+            }
+            emit('update:modelValue', geometry);
+            coordinateBaseline.value = coordinateDraft.value;
+            showCoordinateEditor.value = false;
         };
 
         const splitAtAntimeridian = () => {
@@ -369,7 +426,8 @@ export default {
         });
 
         return {
-            mapElement, showHelp, geometryError, editing,
+            mapElement, showHelp, showCoordinateEditor, coordinateDraft, coordinateError,
+            coordinatesDirty, openCoordinateEditor, applyCoordinateEdit, geometryError, editing,
             selectedCountry, countries, clearGeometry, addCountryBox,
             canSplitGeometry, splitError, splitAtAntimeridian
         };
