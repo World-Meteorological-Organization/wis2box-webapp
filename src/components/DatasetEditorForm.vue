@@ -1756,6 +1756,9 @@ export default defineComponent({
                 }
                 const data = await response.json();
                 templateList.value = data.templates;
+                if (isNew.value) {
+                    removeIncompatibleBufr2GeoJSON();
+                }
             } catch (error) {
                 console.error(error);
                 message.value = 'Error loading templates from API.';
@@ -1850,6 +1853,7 @@ export default defineComponent({
 
             // Data Mappings Editor parts
             model.value.plugins = tidyPlugins(template.wis2box['data_mappings']['plugins']);
+            removeIncompatibleBufr2GeoJSON();
         };
 
         // Load language/country codes from a JSON file
@@ -2010,6 +2014,20 @@ export default defineComponent({
             }
         }
 
+        const removeIncompatibleBufr2GeoJSON = () => {
+            const hasClimat = model.value.plugins.some(plugin =>
+                plugin.name === 'wis2box.data.csv2bufr.ObservationDataCSV2BUFR' &&
+                templateList.value.some(template => template.id === plugin.template && template.title === 'CLIMAT')
+            );
+            const bufr2geojson = 'wis2box.data.bufr2geojson.ObservationDataBUFR2GeoJSON';
+            if (hasClimat && model.value.plugins.some(plugin => plugin.name === bufr2geojson)) {
+                model.value.plugins = model.value.plugins.filter(plugin => plugin.name !== bufr2geojson);
+                submissionIssues.value = [];
+                message.value = 'bufr2geojson does not work with CLIMAT csv2bufr-template';
+                openMessageDialog.value = true;
+            }
+        };
+
         // Adds or updates the plugin in the model
         const savePlugin = () => {
             // If the plugin is new, add it to the model
@@ -2047,6 +2065,7 @@ export default defineComponent({
             }
             // Close the dialog
             openConfigurePluginDialog.value = false;
+            removeIncompatibleBufr2GeoJSON();
         };
 
         // Allows the user to remove a plugin from the model
