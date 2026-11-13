@@ -1756,9 +1756,6 @@ export default defineComponent({
                 }
                 const data = await response.json();
                 templateList.value = data.templates;
-                if (isNew.value) {
-                    removeIncompatibleBufr2GeoJSON();
-                }
             } catch (error) {
                 console.error(error);
                 message.value = 'Error loading templates from API.';
@@ -2015,15 +2012,13 @@ export default defineComponent({
         }
 
         const removeIncompatibleBufr2GeoJSON = () => {
-            const hasClimat = model.value.plugins.some(plugin =>
-                plugin.name === 'wis2box.data.csv2bufr.ObservationDataCSV2BUFR' &&
-                templateList.value.some(template => template.id === plugin.template && template.title === 'CLIMAT')
-            );
+            const hasClimat = model.value.identification.subTopic1 === 'climate' &&
+                model.value.identification.subTopic2 === 'surface-based-observations/monthly';
             const bufr2geojson = 'wis2box.data.bufr2geojson.ObservationDataBUFR2GeoJSON';
             if (hasClimat && model.value.plugins.some(plugin => plugin.name === bufr2geojson)) {
                 model.value.plugins = model.value.plugins.filter(plugin => plugin.name !== bufr2geojson);
                 submissionIssues.value = [];
-                message.value = 'bufr2geojson does not work with CLIMAT csv2bufr-template';
+                message.value = 'CLIMAT BUFRs are incompatible with bufr2geojson.';
                 openMessageDialog.value = true;
             }
         };
@@ -2767,6 +2762,11 @@ export default defineComponent({
             }
             updateTopicHierarchy();
         });
+
+        watch([
+            () => model.value.identification.subTopic1,
+            () => model.value.identification.subTopic2
+        ], removeIncompatibleBufr2GeoJSON);
 
         // For each plugin name, auto populate the plugin fields
         watch(() => pluginName.value, () => {
