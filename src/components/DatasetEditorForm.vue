@@ -1850,6 +1850,7 @@ export default defineComponent({
 
             // Data Mappings Editor parts
             model.value.plugins = tidyPlugins(template.wis2box['data_mappings']['plugins']);
+            removeIncompatibleBufr2GeoJSON();
         };
 
         // Load language/country codes from a JSON file
@@ -2010,6 +2011,18 @@ export default defineComponent({
             }
         }
 
+        const removeIncompatibleBufr2GeoJSON = () => {
+            const hasClimat = model.value.identification.subTopic1 === 'climate' &&
+                model.value.identification.subTopic2 === 'surface-based-observations/monthly';
+            const bufr2geojson = 'wis2box.data.bufr2geojson.ObservationDataBUFR2GeoJSON';
+            if (hasClimat && model.value.plugins.some(plugin => plugin.name === bufr2geojson)) {
+                model.value.plugins = model.value.plugins.filter(plugin => plugin.name !== bufr2geojson);
+                submissionIssues.value = [];
+                message.value = 'CLIMAT BUFRs are incompatible with bufr2geojson.';
+                openMessageDialog.value = true;
+            }
+        };
+
         // Adds or updates the plugin in the model
         const savePlugin = () => {
             // If the plugin is new, add it to the model
@@ -2047,6 +2060,7 @@ export default defineComponent({
             }
             // Close the dialog
             openConfigurePluginDialog.value = false;
+            removeIncompatibleBufr2GeoJSON();
         };
 
         // Allows the user to remove a plugin from the model
@@ -2748,6 +2762,11 @@ export default defineComponent({
             }
             updateTopicHierarchy();
         });
+
+        watch([
+            () => model.value.identification.subTopic1,
+            () => model.value.identification.subTopic2
+        ], removeIncompatibleBufr2GeoJSON);
 
         // For each plugin name, auto populate the plugin fields
         watch(() => pluginName.value, () => {
